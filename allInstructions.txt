@@ -1,0 +1,8 @@
+add (add two register)
+addi (add register and value)
+cmp (compare two registers)
+ld (load regsiter + offset)
+ldc (load register directly)
+b (absolute branch to address as an intermediate)
+j (relative branch to address as an intermediate)
+blth (absolute branch if one register is > other)
