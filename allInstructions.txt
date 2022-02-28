@@ -1,8 +1,8 @@
-add (add two register)
-addi (add register and value)
+add (add two register) store = r2 + r3
+addi (add register and value) store = r2 + x
 cmp (compare two registers)
-ld (load regsiter + offset)
-ldc (load register directly)
+ld (load regsiter + offset) store = (value inside) r2 + x
+ldc (load register directly) store = (value inside) r2
 b (absolute branch to address as an intermediate)
 j (relative branch to address as an intermediate)
 blth (absolute branch if one register is > other)
