@@ -16,7 +16,9 @@ namespace MyProcessor
         public string CommandHistory;
         public string ActiveCommand;
         public string CurrentInstruction;
-        public string[] DecodedInstruction;
+        public string Opcode;
+        public string Destination;
+        public int[] valueRegisters;
         public int instructionCycles;
     }
 
@@ -30,10 +32,12 @@ namespace MyProcessor
 
     class Program
     {
+        static bool PipeDebug = true;
+        static bool MemoryDebug = false;
+        static bool ExcutionUnitDebug = false;
         static int NumberOfPipes = 3;
         static int SizeOfCache = 10;
         static int NumberOfCache = 3;
-
         static int ProgramCounter = 0;
         #region Counting Vars for benchmarking
         static int waitingCycles = 0;
@@ -77,69 +81,30 @@ namespace MyProcessor
             #endregion
 
             #region Printing Processor History
-            Console.WriteLine("----------------  Pipes history    ----------------");
-            int actionsTaken = 0;
-            for(int i = 0; NumberOfPipes > i; i++){
-                if(Pipe.pipes[i].CommandHistory == null) System.Console.WriteLine($" --- Pipe {Pipe.pipes[i].Name} wasn't used");
-                else{
-                    System.Console.Write($" --- Pipe {Pipe.pipes[i].Name}'s History");
-                    System.Console.Write(Pipe.pipes[i].CommandHistory);
-                    System.Console.WriteLine(" | " + Pipe.pipes[i].ActiveCommand);
-                    actionsTaken = actionsTaken + Pipe.pipes[i].instructionCycles;
+            if(PipeDebug == true){
+                Console.WriteLine("----------------  Pipes history    ----------------");
+                int actionsTaken = 0;
+                for(int i = 0; NumberOfPipes > i; i++){
+                    if(Pipe.pipes[i].CommandHistory == null) System.Console.WriteLine($" --- Pipe {Pipe.pipes[i].Name} wasn't used");
+                    else{
+                        System.Console.Write($" --- Pipe {Pipe.pipes[i].Name}'s History");
+                        System.Console.WriteLine(Pipe.pipes[i].CommandHistory);
+                        actionsTaken = actionsTaken + Pipe.pipes[i].instructionCycles;
+                    }
                 }
+                Console.WriteLine($"Actions taken {actionsTaken}");
+                Console.WriteLine($"Waits taken {waitingCycles}");
             }
-            //End of program
-            Console.WriteLine($"Actions taken {actionsTaken}");
-            Console.WriteLine($"Waits taken {waitingCycles}");
-            Console.WriteLine("----------------   Memory stats    ----------------");
-            for(int i = 0; NumberOfCache > i; i++){
-                Console.WriteLine($"Cache calls for cache {i} = {cacheCalls[i]}");
+            if(MemoryDebug == true){
+                Console.WriteLine("----------------   Memory stats    ----------------");
+                for(int i = 0; NumberOfCache > i; i++){
+                    Console.WriteLine($"Cache calls for cache {i} = {cacheCalls[i]}");
+                }
+                Console.WriteLine($"Number of cache misses {cacheMisses}");
             }
-            Console.WriteLine($"Number of cache misses {cacheMisses}");
             #endregion
         }
 
-        static void processCommands(string command, int pipeName){
-            //Console.WriteLine($"Command: {command} in pipe: {pipeName}");
-            //if the pipe is sleeping then we just leave
-            if(command == "Waiting"){
-                //Wait
-                //Add one to total waiting cycles
-                waitingCycles++;
-            }
-            else if(command.Substring(0,5) == "Fetch"){
-                //We fetch 
-                Pipe.pipes[pipeName].CurrentInstruction =  Pipe.pipes[pipeName].ActiveCommand.Remove(0,5);
-            }
-            else if(command == "Decode"){
-                //We decode 
-                //We don't want the fetch so we get rid of that straight away 
-                string currentInstruction =  Pipe.pipes[pipeName].CurrentInstruction;
-                string opCode = getNextPartFromText(currentInstruction);
-                currentInstruction = currentInstruction.Remove(0,opCode.Length + 1);
-                string r1 = getNextPartFromText(currentInstruction);
-                currentInstruction = currentInstruction.Remove(0,r1.Length + 1);
-                //MAGIC NUMBER
-                string r2;
-                if(currentInstruction.Length > 3){
-                    r2 = getNextPartFromText(currentInstruction);
-                    currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
-                    string r3 = currentInstruction;
-                    string[] decodedInstruction = {opCode, r1, r2, r3};
-                    Pipe.pipes[pipeName].DecodedInstruction = decodedInstruction;
-                } else{
-                    r2 = currentInstruction;
-                    string[] decodedInstruction = {opCode, r1, r2};
-                    Pipe.pipes[pipeName].DecodedInstruction = decodedInstruction;
-                }
-            }
-            else if(command == "Excute"){
-                //We excute
-                ALU.excutionUnitManager(pipeName);
-            }
-            return;
-        }
-        
         #region Memory Functions
         public class Memory{
             static public registerFile Regfile = new registerFile();
@@ -237,73 +202,72 @@ namespace MyProcessor
         static class ALU{
             /*Excution Units*/
             static public void excutionUnitManager(int pipeName){
-                if(Pipe.pipes[pipeName].DecodedInstruction.Length == 3){
-                    Console.WriteLine($"Opcode recieved: {Pipe.pipes[pipeName].DecodedInstruction[0]}, with r1: {Pipe.pipes[pipeName].DecodedInstruction[1]} and r2:{Pipe.pipes[pipeName].DecodedInstruction[2]}");
-                } 
-                else if(Pipe.pipes[pipeName].DecodedInstruction.Length == 4){
-                    Console.WriteLine($"Opcode recieved: {Pipe.pipes[pipeName].DecodedInstruction[0]}, with r1: {Pipe.pipes[pipeName].DecodedInstruction[1]}, r2:{Pipe.pipes[pipeName].DecodedInstruction[2]} and r3:{Pipe.pipes[pipeName].DecodedInstruction[3]}");
-                }else Console.WriteLine("Unsupported decoded instruction");
+                string debug = String.Format($"Opcode recieved: {Pipe.pipes[pipeName].Opcode}, with Destination: {Pipe.pipes[pipeName].Destination}, regVal1:{Pipe.pipes[pipeName].valueRegisters[0]} and regVal2:{Pipe.pipes[pipeName].valueRegisters[1]}");
+                DebugPrint(debug);
 
                 //Here's where we decide what to actually do
                 //REGISTER COMMANDS
-                if(Pipe.pipes[pipeName].DecodedInstruction[0] == "LD"){
+                if(Pipe.pipes[pipeName].Opcode == "LD"){
                     //Load Register via offset
-                    loadOffset(Pipe.pipes[pipeName].DecodedInstruction[1], Pipe.pipes[pipeName].DecodedInstruction[2], Pipe.pipes[pipeName].DecodedInstruction[3]);
+                    //Sorted to ldc at decode so we shouldn't ever run this 
+                    Console.WriteLine("ERROR ----- We have command LD where we should have LDC, maybe decode failed?");
                 }
-                if(Pipe.pipes[pipeName].DecodedInstruction[0] == "LDC"){
+                if(Pipe.pipes[pipeName].Opcode == "LDC"){
                     //Load Register directly
-                    loadDirectly(Pipe.pipes[pipeName].DecodedInstruction[1], Pipe.pipes[pipeName].DecodedInstruction[2]);
+                    loadDirectly(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0]);
                 }
                 //BRANCH COMMANDS
                 
                 //ARTHEMETRIC
-                if(Pipe.pipes[pipeName].DecodedInstruction[0] == "ADDI"){
-                    addiEU(Pipe.pipes[pipeName].DecodedInstruction[1], Pipe.pipes[pipeName].DecodedInstruction[2], Pipe.pipes[pipeName].DecodedInstruction[3]);
+                if(Pipe.pipes[pipeName].Opcode == "ADDI"){
+                    addiEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
                 }
-                if(Pipe.pipes[pipeName].DecodedInstruction[0] == "ADD"){
-                    addEU(Pipe.pipes[pipeName].DecodedInstruction[1], Pipe.pipes[pipeName].DecodedInstruction[2], Pipe.pipes[pipeName].DecodedInstruction[3]);
+                if(Pipe.pipes[pipeName].Opcode == "ADD"){
+                    addEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
                 }
-                if(Pipe.pipes[pipeName].DecodedInstruction[0] == "SUB"){
-                    subEU(Pipe.pipes[pipeName].DecodedInstruction[1], Pipe.pipes[pipeName].DecodedInstruction[2], Pipe.pipes[pipeName].DecodedInstruction[3]);
+                if(Pipe.pipes[pipeName].Opcode == "SUB"){
+                    subEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                }
+                if(Pipe.pipes[pipeName].Opcode == "COMP"){
+                    compare(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
                 }
             }
-            static void addEU(string r1, string r2, string r3){
+            static void addEU(string r1, int r2, int r3){
                 //ADD r1 = r2 + r3
-                //Getting value from r2 and r3 
-                int registesCurrentValueR2 = Memory.GetValueFromRegister(r2);
-                int registesCurrentValueR3 = Memory.GetValueFromRegister(r3);
-                int result = registesCurrentValueR2 + registesCurrentValueR3;
+                int result = r2 + r3;
                 //System.Console.WriteLine($"Adding {r2} to {r3}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
             }
-            static void subEU(string r1, string r2, string r3){
+            static void subEU(string r1, int r2, int r3){
                 //SUB r1 = r2 - r3 
-                 //Getting value from r2 and r3 
-                int registesCurrentValueR2 = Memory.GetValueFromRegister(r2);
-                int registesCurrentValueR3 = Memory.GetValueFromRegister(r3);
-                int result = registesCurrentValueR2 - registesCurrentValueR3;
+                int result = r2 - r3;
                 //System.Console.WriteLine($"Subtracting {r2} to {r3}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
             }
-            static void addiEU(string r1, string r2, string x){
+            static void addiEU(string r1, int r2, int r3){
                 //ADDI r1 increamented by r2(value)
-                //Get Value of r1
-                int registesCurrentValue = Memory.GetValueFromRegister(r2);
-                int result = registesCurrentValue + Int32.Parse(x);
+                int result = r2 + r3;
                 //System.Console.WriteLine($"Adding register {r1} to {x}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
             }
-            static void loadDirectly(string r1, string r2){
+            static void loadDirectly(string r1, int r2){
                 //Load r2's value into r1
-                int registesCurrentValue = Memory.GetValueFromRegister(r2);
                 //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
-                Memory.PutValueInRegister(r1, registesCurrentValue);
+                Memory.PutValueInRegister(r1, r2);
             }
-            static void loadOffset(string r1, string r2, string x){
-                //Load r2 + x 's value into r1
-                int registesCurrentValue = Memory.GetValueFromRegisterWithOffset(r2, x);
-                //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
-                Memory.PutValueInRegister(r1, registesCurrentValue);
+            static void compare(string r1, int r2, int r3){
+                if(r2 < r3){
+                    Memory.PutValueInRegister(r1, -1);
+                }
+                if(r2 > r3){
+                    Memory.PutValueInRegister(r1, 1);
+                }
+                else Memory.PutValueInRegister(r1, 0);
+            }
+            static void DebugPrint(string debugPrint){
+                if(ExcutionUnitDebug == true){
+                    Console.WriteLine(debugPrint);
+                }
             }
         }
         #endregion
@@ -318,13 +282,31 @@ namespace MyProcessor
                     pipes[i].ActiveCommand = null;
                     pipes[i].CommandHistory = null;
                     pipes[i].instructionCycles = 0;
+                    //We only have two registers per pipe
+                    pipes[i].valueRegisters = new int[2];
                 }
             }
             static public void PipeReplaceCommand(string oldCommand, string newCommand, int pipeName){
                 //aConsole.WriteLine($"Pipe:{pipe.Name} has gone from {oldCommand} to {newCommand}");
                 if(oldCommand != null){
+                    string commandToBeAdded = "";
+                    if(Pipe.pipes[pipeName].ActiveCommand == null || Pipe.pipes[pipeName].ActiveCommand == "Waiting"){
+                        commandToBeAdded = "WT";
+                    } 
+                    else if(Pipe.pipes[pipeName].ActiveCommand.Substring(0,5) == "Fetch"){
+                        commandToBeAdded = "IF";
+                    }
+                    else if(Pipe.pipes[pipeName].ActiveCommand == "Decode"){
+                        commandToBeAdded = "DE";
+                    }
+                    else if(Pipe.pipes[pipeName].ActiveCommand == "Excute"){
+                        commandToBeAdded = "EX";
+                    }
+                    else {
+                        Console.WriteLine($"Pipe {Pipe.pipes[pipeName].Name} has a unrecognised active command");
+                    }
                     //Add old Command to history 
-                    Pipe.pipes[pipeName].CommandHistory = Pipe.pipes[pipeName].CommandHistory + " | " + oldCommand;
+                    Pipe.pipes[pipeName].CommandHistory = Pipe.pipes[pipeName].CommandHistory + " | " + commandToBeAdded;
                 }
                 //Replace new active command
                 Pipe.pipes[pipeName].ActiveCommand = newCommand;
@@ -337,7 +319,7 @@ namespace MyProcessor
                 for(int i = 0; NumberOfPipes > i; i++){
                     if(ProgramCounter < instructionList.Length){
                         if(pipes[i].ActiveCommand == null || pipes[i].ActiveCommand == "Waiting"){
-                            Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
+                            //Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
                             PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
                             ProgramCounter++;
 
@@ -360,7 +342,7 @@ namespace MyProcessor
                         UpdatePipe(Pipe.pipes[i].Name);
                     }
                 }
-                PipeExcute();
+                Excute();
             }
             static void UpdatePipe(int pipeName){
                 if(Pipe.pipes[pipeName].ActiveCommand == null || Pipe.pipes[pipeName].ActiveCommand == "Waiting"){
@@ -382,12 +364,81 @@ namespace MyProcessor
                     Console.WriteLine($"Pipe {Pipe.pipes[pipeName].Name} has a unrecognised active command");
                 }
             }
-            static void PipeExcute(){
+            static void Excute(){
                 //Excute pipe instructions
                 for(int i = 0; NumberOfPipes > i; i++){
                     //Console.WriteLine($"{pipes[i].ActiveCommand}");
                     processCommands(pipes[i].ActiveCommand, pipes[i].Name);
                 }
+            }
+            static void processCommands(string command, int pipeName){
+            //Console.WriteLine($"Command: {command} in pipe: {pipeName}");
+            //if the pipe is sleeping then we just leave
+            if(command == "Waiting"){
+                //Wait
+                //Add one to total waiting cycles
+                waitingCycles++;
+            }
+            else if(command.Substring(0,5) == "Fetch"){
+                //We fetch 
+                Pipe.pipes[pipeName].CurrentInstruction =  Pipe.pipes[pipeName].ActiveCommand.Remove(0,5);
+            }
+            else if(command == "Decode"){
+                //We decode 
+                Decode(pipeName);
+            }
+            else if(command == "Excute"){
+                //We excute
+                ALU.excutionUnitManager(pipeName);
+            }
+            return;
+            }
+            static void Decode(int pipeName){
+                //We don't want the fetch so we get rid of that straight away 
+                    string currentInstruction =  Pipe.pipes[pipeName].CurrentInstruction;
+                    string opCode = getNextPartFromText(currentInstruction);
+                    currentInstruction = currentInstruction.Remove(0,opCode.Length + 1);
+                    string destination = getNextPartFromText(currentInstruction);
+                    currentInstruction = currentInstruction.Remove(0,destination.Length + 1);
+
+                    
+                    string r2;
+                    //Change LD to LDC
+                    if(opCode == "LD"){
+                        r2 = getNextPartFromText(currentInstruction);
+                        currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
+                        string r3 = currentInstruction;
+                        //Get value from register here
+                        //We leave r2 as a register
+                        int valueLoaded = 0;
+                        if(r3.Contains('r') == true) {
+                            valueLoaded = Memory.GetValueFromRegister(r3);
+                        } else valueLoaded =  Int32.Parse(r3);
+                        opCode = "LDC";
+                        Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
+                    } else {
+                        if(currentInstruction.Length > 3){
+                            r2 = getNextPartFromText(currentInstruction);
+                            currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
+                            string r3 = currentInstruction;
+                            //Get value from register here
+                            if(r2.Contains('r') == true) {
+                                Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
+                            } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
+                            if(r3.Contains('r') == true) {
+                                Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
+                            } else Pipe.pipes[pipeName].valueRegisters[1] =  Int32.Parse(r3);
+                        } else{
+                            r2 = currentInstruction;
+                            if(r2.Contains('r') == true) {
+                                Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
+                            } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
+                        }
+                    }
+
+                    //Give opCode and destination
+                    Pipe.pipes[pipeName].Opcode = opCode;
+                    Pipe.pipes[pipeName].Destination = destination;
             }
         }
         #endregion
