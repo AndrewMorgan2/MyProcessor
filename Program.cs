@@ -23,7 +23,7 @@ namespace MyProcessor
     }
 
     struct cache{
-        public byte[] memory;
+        public int[] memory;
     }
     struct registerFile{
         public cache[] caches; 
@@ -32,14 +32,19 @@ namespace MyProcessor
 
     class Program
     {
-        static bool PipeDebug = true;
-        static bool MemoryDebug = false;
-        static bool ExcutionUnitDebug = false;
         static int NumberOfPipes = 3;
         static int SizeOfCache = 10;
         static int NumberOfCache = 3;
         static int ProgramCounter = 0;
-        #region Counting Vars for benchmarking
+        //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
+        static int CycleLimit = 100;
+        #region Counting Vars for benchmarking and debug bools
+        static bool PipeDebug = true;
+        static bool MemoryDebug = false;
+        static bool ExcutionUnitDebug = false;
+        static bool WriteBackDebug = true;
+        static bool MemoryReadOut = true;
+        static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
         static int[] cacheCalls = new int[NumberOfCache];
         static int cacheMisses = 0;
@@ -66,6 +71,8 @@ namespace MyProcessor
             
             //Excute the instructions, that are still in pipes
             int pipesClear = 0;
+            //Counting cycles for infiniteLoopDetection
+            int cycles = 0;
             while(pipesClear < NumberOfPipes){
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
@@ -75,6 +82,13 @@ namespace MyProcessor
                     //if the pipe is done or not used
                     if(Pipe.pipes[i].ActiveCommand == "Waiting" || Pipe.pipes[i].ActiveCommand == null){
                         pipesClear++;
+                    }
+                }
+                cycles ++;
+                if(InfiniteLoopDetection == true){
+                    if(cycles > CycleLimit) {
+                        Console.WriteLine("CYCLE LIMIT REACHED, INFINITE CYLCE DETECTED");
+                        break;
                     }
                 }
             }
@@ -102,6 +116,17 @@ namespace MyProcessor
                 }
                 Console.WriteLine($"Number of cache misses {cacheMisses}");
             }
+            if(MemoryReadOut == true){
+                Console.WriteLine("----------------   Memory readOut    ----------------");
+                string readOut = "";
+                for(int i = 0; i < NumberOfCache; i++){
+                    readOut = readOut + $"\n Cache {i} contained: ";
+                    for(int a = 0; a < SizeOfCache; a++){
+                        readOut = readOut + $"r{a + (i*SizeOfCache)} " + Memory.Regfile.caches[i].memory[a] + " | ";
+                    }
+                }
+                Console.WriteLine(readOut);
+            }
             #endregion
         }
 
@@ -116,7 +141,7 @@ namespace MyProcessor
 
                 for(int i = 0; i < NumberOfCache; i++){
                     cache cacheToBeAddedToRegister = new cache{ 
-                    memory = new byte[SizeOfCache]
+                    memory = new int[SizeOfCache]
                     };
                     regFile.caches[i] = cacheToBeAddedToRegister;
                 }
@@ -138,18 +163,11 @@ namespace MyProcessor
                     //Cache Miss
                     cacheMisses++;
                 } 
-
-                /*
-                //Debug for what we are doing in the memory
-                if(Regfile.caches[cacheNumber].memory[registerIndex] == 0){
-                    Console.WriteLine($"We aren't writing over anything in cache{cacheNumber} at {registerIndex}");
-                } else Console.WriteLine($"We are writing over in cache{cacheNumber} at {registerIndex} it had value {Regfile.caches[cacheNumber].memory[registerIndex]}");
-                */
                 //Update benchmark parameters
                 cacheCalls[cacheNumber]++;
 
                 //Actually set values in the memory 
-                Regfile.caches[cacheNumber].memory[registerIndex] = (byte)value;
+                Regfile.caches[cacheNumber].memory[registerIndex] = value;
                 //Console.WriteLine($"{Regfile.caches[cacheNumber].memory[registerIndex]} is the value in in cache:{cacheNumber}, register:{registerIndex}");
             }
             static public int GetValueFromRegister(string registerIndexString){
@@ -216,8 +234,15 @@ namespace MyProcessor
                     //Load Register directly
                     loadDirectly(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0]);
                 }
+
                 //BRANCH COMMANDS
-                
+                if(Pipe.pipes[pipeName].Opcode == "BEQ"){
+                    BranchEqual(Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                }
+                if(Pipe.pipes[pipeName].Opcode == "BNE"){
+                    BranchNotEqual(Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                }
+
                 //ARTHEMETRIC
                 if(Pipe.pipes[pipeName].Opcode == "ADDI"){
                     addiEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
@@ -237,35 +262,68 @@ namespace MyProcessor
                 int result = r2 + r3;
                 //System.Console.WriteLine($"Adding {r2} to {r3}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
+                //Write Back Debug
+                DebugPrintWriteBack($"Add Write Back {result}");
             }
             static void subEU(string r1, int r2, int r3){
                 //SUB r1 = r2 - r3 
                 int result = r2 - r3;
                 //System.Console.WriteLine($"Subtracting {r2} to {r3}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
+                //Write Back Debug
+                DebugPrintWriteBack($"Sub Write Back {result}");
             }
             static void addiEU(string r1, int r2, int r3){
                 //ADDI r1 increamented by r2(value)
                 int result = r2 + r3;
                 //System.Console.WriteLine($"Adding register {r1} to {x}: Result {result}");
                 Memory.PutValueInRegister(r1, result);
+                //Write Back Debug
+                DebugPrintWriteBack($"AddI Write Back {result}");
             }
             static void loadDirectly(string r1, int r2){
                 //Load r2's value into r1
                 //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
                 Memory.PutValueInRegister(r1, r2);
+                //Write Back Debug
+                DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
             }
             static void compare(string r1, int r2, int r3){
                 if(r2 < r3){
                     Memory.PutValueInRegister(r1, -1);
+                    //Write Back Debug
+                    DebugPrintWriteBack($"Compare Write Back: loaded {-1} into {r1}");
                 }
-                if(r2 > r3){
-                    Memory.PutValueInRegister(r1, 1);
+                else if(r2 > r3){
+                    Memory.PutValueInRegister(r1, 1); 
+                    //Write Back Debug
+                    DebugPrintWriteBack($"Compare Write Back: loaded {1} into {r1}");
                 }
-                else Memory.PutValueInRegister(r1, 0);
+                else {
+                    Memory.PutValueInRegister(r1, 0);                
+                    //Write Back Debug
+                    DebugPrintWriteBack($"Compare Write Back: loaded {0} into {r1}");
+                }
+            }
+            static void BranchEqual(int newPCPosition, int value){
+                if(value == 0) {
+                    ProgramCounter = value;
+                    DebugPrintWriteBack($"BranchEqual Write Back: changed PC to {value}");
+                } else DebugPrintWriteBack($"BranchEqual Write Back: didnt change PC");
+            }
+            static void BranchNotEqual(int newPCPosition, int value){
+                if(value != 0) {
+                    ProgramCounter = value;
+                    DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {value}");
+                } else DebugPrintWriteBack($"BranchNotEqual Write Back: didnt change PC");
             }
             static void DebugPrint(string debugPrint){
                 if(ExcutionUnitDebug == true){
+                    Console.WriteLine(debugPrint);
+                }
+            }
+            static void DebugPrintWriteBack(string debugPrint){
+                if(WriteBackDebug == true){
                     Console.WriteLine(debugPrint);
                 }
             }
@@ -395,50 +453,47 @@ namespace MyProcessor
             }
             static void Decode(int pipeName){
                 //We don't want the fetch so we get rid of that straight away 
-                    string currentInstruction =  Pipe.pipes[pipeName].CurrentInstruction;
-                    string opCode = getNextPartFromText(currentInstruction);
-                    currentInstruction = currentInstruction.Remove(0,opCode.Length + 1);
-                    string destination = getNextPartFromText(currentInstruction);
-                    currentInstruction = currentInstruction.Remove(0,destination.Length + 1);
+                string currentInstruction =  Pipe.pipes[pipeName].CurrentInstruction;
+                string opCode = getNextPartFromText(currentInstruction);
+                currentInstruction = currentInstruction.Remove(0,opCode.Length + 1);
+                string destination = getNextPartFromText(currentInstruction);
+                currentInstruction = currentInstruction.Remove(0,destination.Length + 1);
 
-                    
-                    string r2;
-                    //Change LD to LDC
-                    if(opCode == "LD"){
-                        r2 = getNextPartFromText(currentInstruction);
+                string r2;
+                //Change LD to LDC
+                if(opCode == "LD"){
+                    r2 = getNextPartFromText(currentInstruction);
+                    currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
+                    string r3 = currentInstruction;
+                    //Get value from register here
+                    //We leave r2 as a register
+                    int valueLoaded = 0;
+                    if(r3.Contains('r') == true) {
+                        valueLoaded = Memory.GetValueFromRegister(r3);
+                    } else valueLoaded =  Int32.Parse(r3);
+                    opCode = "LDC";
+                    Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
+                } 
+                //Decode Happens here
+                else {
+                    r2 = getNextPartFromText(currentInstruction);
+                    //Get value from register here (if possible)
+                    if(r2.Contains('r') == true) {
+                        Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
+                    } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
+                    //Checks if there is more to decode
+                    if(currentInstruction.Length > r2.Length + 1){
                         currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
                         string r3 = currentInstruction;
-                        //Get value from register here
-                        //We leave r2 as a register
-                        int valueLoaded = 0;
+                        //Get value from register here (if possible)
                         if(r3.Contains('r') == true) {
-                            valueLoaded = Memory.GetValueFromRegister(r3);
-                        } else valueLoaded =  Int32.Parse(r3);
-                        opCode = "LDC";
-                        Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
-                    } else {
-                        if(currentInstruction.Length > 3){
-                            r2 = getNextPartFromText(currentInstruction);
-                            currentInstruction = currentInstruction.Remove(0,r2.Length + 1);
-                            string r3 = currentInstruction;
-                            //Get value from register here
-                            if(r2.Contains('r') == true) {
-                                Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
-                            } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
-                            if(r3.Contains('r') == true) {
-                                Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
-                            } else Pipe.pipes[pipeName].valueRegisters[1] =  Int32.Parse(r3);
-                        } else{
-                            r2 = currentInstruction;
-                            if(r2.Contains('r') == true) {
-                                Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
-                            } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
-                        }
+                            Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
+                        } else Pipe.pipes[pipeName].valueRegisters[1] =  Int32.Parse(r3);
                     }
-
-                    //Give opCode and destination
-                    Pipe.pipes[pipeName].Opcode = opCode;
-                    Pipe.pipes[pipeName].Destination = destination;
+                }
+                //Give opCode and destination
+                Pipe.pipes[pipeName].Opcode = opCode;
+                Pipe.pipes[pipeName].Destination = destination;
             }
         }
         #endregion

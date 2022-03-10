@@ -4,4 +4,5 @@ ADD r3 r2 r1
 SUB r4 r1 r3
 LDC r15 r1
 LD r16 r1 6
-COMP r20 1 10
+COMP r17 1 10
+BNE 10 r17
