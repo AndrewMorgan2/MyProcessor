@@ -5,4 +5,6 @@ SUB r4 r1 r3
 LDC r15 r1
 LD r16 r1 6
 COMP r17 1 10
-BNE 10 r17
+BEQ 10 r17
+MUL r5 r6 r7
+DIV r1 r4 r3

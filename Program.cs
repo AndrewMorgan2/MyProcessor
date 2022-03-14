@@ -13,37 +13,75 @@ namespace MyProcessor
     struct pipeData
     {
         public int Name;
+        //Used to debug at the end
         public string CommandHistory;
+        //How we know what the pipe is doing
         public string ActiveCommand;
+        //What we decode
         public string CurrentInstruction;
+        //Opcode from decode
         public string Opcode;
+        //Where the operationw will end up
         public string Destination;
         public int[] valueRegisters;
         public int instructionCycles;
+        //Used to implement division/multiple/load/store taking more than one cycle
+        public int numCyclesBusyFor;
     }
-
     struct cache{
         public int[] memory;
     }
     struct registerFile{
         public cache[] caches; 
     }
+    struct excutionUnit{
+        public int numberOfCommandsInTheStation;
+        public int cyclesBusyFor;
+        public excutionUnitType type;
+        public command[] resStation;
+        public string historyResStation;
+    }
+    struct command{
+        public string opCode;
+        public string destination;
+        public int value1;
+        public int value2;
+    }
+    enum excutionUnitType{
+        ALU, Branch, LoadStore
+    }
     #endregion
 
     class Program
     {
+        #region Processor Stats
         static int NumberOfPipes = 3;
         static int SizeOfCache = 10;
         static int NumberOfCache = 3;
+        static int ALUUnitNumber = 3;
+        static int BranchUnitNumber = 1;
+        static int LoadAndStoreUnitNumber = 1;
+        static int SizeOfReservationStation = 3;
+        static bool ReservationStationsUsed = true;
         static int ProgramCounter = 0;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
         static int CycleLimit = 100;
+        #endregion
+        #region Number of cycles to do certain operations
+        //All of these are extra cycles so 2 extra cycles means 3 total
+        //ADD ONE TO ALL TO GET TOTAL CYCLES
+        static int divisionCycles = 9;
+        static int loadAndStoreCycles = 1;
+        static int multiplyCycles = 2;
+        #endregion
         #region Counting Vars for benchmarking and debug bools
         static bool PipeDebug = true;
         static bool MemoryDebug = false;
         static bool ExcutionUnitDebug = false;
-        static bool WriteBackDebug = true;
-        static bool MemoryReadOut = true;
+        static bool WriteBackDebug = false;
+        static bool MemoryReadOut = false;
+        static bool ReserveStationReadOut = true;
+        static bool PipeAssignmentDebug = false;
         static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
         static int[] cacheCalls = new int[NumberOfCache];
@@ -52,10 +90,11 @@ namespace MyProcessor
         static void Main(string[] args)
         {
             Console.WriteLine("----------------  Starting   ----------------");
-            #region Instatiate pipes and register file
+            #region Instatiate pipes, register file and reservation stations
             //Instatiate Pipes and Memory
             Pipe.makePipes();
             Memory.makeMemory();
+            ExcutionUnits.makeExcutionUnits();
             #endregion
             
             #region Run Processor
@@ -66,6 +105,10 @@ namespace MyProcessor
             while(instructionList.Length > ProgramCounter){
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
+                if(ReservationStationsUsed == true){
+                    //Run all excution units
+                    ExcutionUnits.ProcessReserveStations();
+                }
             }
             Console.WriteLine("All instructions have been fetched!");
             
@@ -76,6 +119,10 @@ namespace MyProcessor
             while(pipesClear < NumberOfPipes){
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
+                if(ReservationStationsUsed == true){
+                    //Run all excution units
+                    ExcutionUnits.ProcessReserveStations();
+                }
                 pipesClear = 0;
                 //Check if the pipes are clear
                 for(int i = 0; NumberOfPipes > i; i++){
@@ -126,6 +173,21 @@ namespace MyProcessor
                     }
                 }
                 Console.WriteLine(readOut);
+            }
+            if(ReserveStationReadOut == true && ReservationStationsUsed == true){
+                Console.WriteLine("----------------   RS readOut    ----------------");
+                for(int i = 0; i < ALUUnitNumber; i++){
+                    string debug = $"- Reserve station ALU[{i}] is {ExcutionUnits.ALUunits[i].historyResStation}";
+                    Console.WriteLine(debug);
+                }
+                for(int i = 0; i < BranchUnitNumber; i++){
+                    string debug = $"- Reserve station Branch[{i}] is {ExcutionUnits.Branchunits[i].historyResStation}";
+                    Console.WriteLine(debug);
+                }
+                for(int i = 0; i < LoadAndStoreUnitNumber; i++){
+                    string debug = $"- Reserve station Load Store[{i}] is {ExcutionUnits.LoadStoreunits[i].historyResStation}";
+                    Console.WriteLine(debug);
+                }
             }
             #endregion
         }
@@ -217,46 +279,197 @@ namespace MyProcessor
         #endregion
         
         #region Excution Units
-        static class ALU{
+        static class ExcutionUnits{
+            #region Excution Units
+            static public excutionUnit[] ALUunits = new excutionUnit[ALUUnitNumber];
+            static public excutionUnit[] Branchunits = new excutionUnit[BranchUnitNumber];
+            static public excutionUnit[] LoadStoreunits = new excutionUnit[LoadAndStoreUnitNumber];
+            #endregion
+            static public void makeExcutionUnits(){
+                for(int i = 0; i < ALUUnitNumber; i++){
+                    excutionUnit newExcutionUnit = new excutionUnit{
+                        numberOfCommandsInTheStation = 0,
+                        cyclesBusyFor = 0,
+                        historyResStation = "",
+                        type = excutionUnitType.ALU,
+                        resStation = new command[SizeOfReservationStation]
+                    };
+                    ALUunits[i] = newExcutionUnit;
+                }
+                for(int i = 0; i < BranchUnitNumber; i++){
+                    excutionUnit newExcutionUnit = new excutionUnit{
+                        numberOfCommandsInTheStation = 0,
+                        cyclesBusyFor = 0,
+                        historyResStation = "",
+                        type = excutionUnitType.Branch,
+                        resStation = new command[SizeOfReservationStation]
+                    };
+                    Branchunits[i] = newExcutionUnit;
+                }
+                for(int i = 0; i < LoadAndStoreUnitNumber; i++){
+                    excutionUnit newExcutionUnit = new excutionUnit{
+                        numberOfCommandsInTheStation = 0,
+                        cyclesBusyFor = 0,
+                        historyResStation = "",
+                        type = excutionUnitType.LoadStore,
+                        resStation = new command[SizeOfReservationStation]
+                    };
+                    LoadStoreunits[i] = newExcutionUnit;
+                }
+            }
             /*Excution Units*/
             static public void excutionUnitManager(int pipeName){
                 string debug = String.Format($"Opcode recieved: {Pipe.pipes[pipeName].Opcode}, with Destination: {Pipe.pipes[pipeName].Destination}, regVal1:{Pipe.pipes[pipeName].valueRegisters[0]} and regVal2:{Pipe.pipes[pipeName].valueRegisters[1]}");
                 DebugPrint(debug);
-
+                //Do excution 
+                command newCommand = new command{
+                    opCode = Pipe.pipes[pipeName].Opcode, 
+                    destination = Pipe.pipes[pipeName].Destination, 
+                    value1 = Pipe.pipes[pipeName].valueRegisters[0], 
+                    value2 = Pipe.pipes[pipeName].valueRegisters[1]
+                };
+                if(ReservationStationsUsed == true){
+                    excutionUnitType type;
+                    if(newCommand.opCode == "LDC" || newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
+                    else if(newCommand.opCode == "BEQ" || newCommand.opCode == "BNE") type = excutionUnitType.Branch;
+                    else type = excutionUnitType.ALU;
+                    AssignToExcutionUnit(type,newCommand);
+                }else{
+                    ExcutionUnit(pipeName, false, newCommand);
+                }
+            }
+            static void AssignToExcutionUnit(excutionUnitType type, command newCommand){
+                //Just determines where to put the command
+                excutionUnit[] units = new excutionUnit[0];
+                int numberOfUnits = 0;
+                int exUnitToBeGivenCommand = 0;
+                int posResStation = 0;
+                if(excutionUnitType.ALU == type){
+                    units = ALUunits;
+                    numberOfUnits = ALUUnitNumber;
+                }
+                else if(excutionUnitType.Branch == type){
+                    units = Branchunits;
+                    numberOfUnits = BranchUnitNumber;
+                }
+                else if(excutionUnitType.LoadStore == type){
+                    units = LoadStoreunits;
+                    numberOfUnits = LoadAndStoreUnitNumber;
+                }
+                for(int i = 0; i < numberOfUnits; i++){
+                    //Start by assigning to the first ALU unit
+                    if(i == 0) {
+                        exUnitToBeGivenCommand = 0;
+                        posResStation = units[i].numberOfCommandsInTheStation;
+                    }
+                    //Check to see if one has less commands in than the other
+                    else {
+                        if(units[i].numberOfCommandsInTheStation < posResStation){
+                            exUnitToBeGivenCommand = i;
+                            posResStation = units[i].numberOfCommandsInTheStation;
+                        }
+                    }
+                }
+                //Put command in RS
+                units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
+                units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
+            }
+            static public void ProcessReserveStations(){
+                for(int i = 0; i < ALUUnitNumber; i++){
+                    if(ALUunits[i].resStation[0].opCode != ""){
+                        if(ALUunits[i].cyclesBusyFor == 0){
+                            ExcutionUnit(i, true, ALUunits[i].resStation[0]);
+                            PopLastCommandFromReserveStations(ref ALUunits[i]);
+                        }
+                        else ALUunits[i].cyclesBusyFor--;
+                    } 
+                }
+                for(int i = 0; i < BranchUnitNumber; i++){
+                    if(Branchunits[i].resStation[0].opCode != ""){
+                        if(Branchunits[i].cyclesBusyFor == 0) {
+                            ExcutionUnit(i, true, Branchunits[i].resStation[0]);
+                            PopLastCommandFromReserveStations(ref Branchunits[i]);
+                        }
+                        else Branchunits[i].cyclesBusyFor--;
+                    } 
+                }
+                for(int i = 0; i < LoadAndStoreUnitNumber; i++){
+                    if(LoadStoreunits[i].resStation[0].opCode != ""){
+                        if(LoadStoreunits[i].cyclesBusyFor == 0){
+                            ExcutionUnit(i, true, LoadStoreunits[i].resStation[0]);
+                            PopLastCommandFromReserveStations(ref LoadStoreunits[i]);
+                        }
+                        else LoadStoreunits[i].cyclesBusyFor--;
+                    } 
+                }
+            }
+            static void PopLastCommandFromReserveStations(ref excutionUnit unit){
+                unit.historyResStation = unit.historyResStation + " | " + unit.resStation[0].opCode;
+                for(int i = 1; i < SizeOfReservationStation; i++){
+                    unit.resStation[i] = unit.resStation[i - 1]; 
+                }
+                unit.resStation[SizeOfReservationStation - 1] = new command{};
+            }
+            static void ExcutionUnit(int name, bool resStations, command Command){
                 //Here's where we decide what to actually do
                 //REGISTER COMMANDS
-                if(Pipe.pipes[pipeName].Opcode == "LD"){
+                if(Command.opCode == "LD"){
                     //Load Register via offset
                     //Sorted to ldc at decode so we shouldn't ever run this 
                     Console.WriteLine("ERROR ----- We have command LD where we should have LDC, maybe decode failed?");
                 }
-                if(Pipe.pipes[pipeName].Opcode == "LDC"){
+                if(Command.opCode == "LDC"){
                     //Load Register directly
-                    loadDirectly(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0]);
+                    loadDirectly(Command.destination, Command.value1);
+                    if(resStations == true){
+                        LoadStoreunits[name].cyclesBusyFor = loadAndStoreCycles;
+                    } else {
+                        //How long will the pipe be busy
+                        Pipe.pipes[name].numCyclesBusyFor = loadAndStoreCycles;
+                    }
                 }
 
                 //BRANCH COMMANDS
-                if(Pipe.pipes[pipeName].Opcode == "BEQ"){
-                    BranchEqual(Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "BEQ"){
+                    BranchEqual(Command.value1, Command.value2);
                 }
-                if(Pipe.pipes[pipeName].Opcode == "BNE"){
-                    BranchNotEqual(Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "BNE"){
+                    BranchNotEqual(Command.value1, Command.value2);
                 }
 
                 //ARTHEMETRIC
-                if(Pipe.pipes[pipeName].Opcode == "ADDI"){
-                    addiEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "ADDI"){
+                    addiEU(Command.destination, Command.value1, Command.value2);
                 }
-                if(Pipe.pipes[pipeName].Opcode == "ADD"){
-                    addEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "ADD"){
+                    addEU(Command.destination, Command.value1, Command.value2);
                 }
-                if(Pipe.pipes[pipeName].Opcode == "SUB"){
-                    subEU(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "SUB"){
+                    subEU(Command.destination, Command.value1, Command.value2);
                 }
-                if(Pipe.pipes[pipeName].Opcode == "COMP"){
-                    compare(Pipe.pipes[pipeName].Destination, Pipe.pipes[pipeName].valueRegisters[0], Pipe.pipes[pipeName].valueRegisters[1]);
+                if(Command.opCode == "COMP"){
+                    compare(Command.destination, Command.value1, Command.value2);
+                }
+                if(Command.opCode == "MUL"){
+                    mulEU(Command.destination, Command.value1, Command.value2);
+                    if(resStations == true){
+                        ALUunits[name].cyclesBusyFor = multiplyCycles;
+                    } else {
+                        //How long will the pipe be busy
+                        Pipe.pipes[name].numCyclesBusyFor = multiplyCycles;
+                    }
+                }
+                if(Command.opCode == "DIV"){
+                    divEU(Command.destination, Command.value1, Command.value2);
+                    if(resStations == true){
+                        ALUunits[name].cyclesBusyFor = divisionCycles;
+                    } else {
+                        //How long will the pipe be busy
+                        Pipe.pipes[name].numCyclesBusyFor = divisionCycles;
+                    }
                 }
             }
+            #region ALU processes
             static void addEU(string r1, int r2, int r3){
                 //ADD r1 = r2 + r3
                 int result = r2 + r3;
@@ -281,13 +494,6 @@ namespace MyProcessor
                 //Write Back Debug
                 DebugPrintWriteBack($"AddI Write Back {result}");
             }
-            static void loadDirectly(string r1, int r2){
-                //Load r2's value into r1
-                //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
-                Memory.PutValueInRegister(r1, r2);
-                //Write Back Debug
-                DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
-            }
             static void compare(string r1, int r2, int r3){
                 if(r2 < r3){
                     Memory.PutValueInRegister(r1, -1);
@@ -305,6 +511,28 @@ namespace MyProcessor
                     DebugPrintWriteBack($"Compare Write Back: loaded {0} into {r1}");
                 }
             }
+            static void mulEU(string r1, int r2, int r3){
+                //MUL r1 = r2 * r3 
+                int result = r2 * r3;
+                //System.Console.WriteLine($"Multiplying {r2} to {r3}: Result {result}");
+                Memory.PutValueInRegister(r1, result);
+                //Write Back Debug
+                DebugPrintWriteBack($"Mul Write Back {result}");
+            }
+            static void divEU(string r1, int r2, int r3){
+                if(r3 == 0){
+                    Console.WriteLine("TRIED TO DIVIDE BY ZERO COMMAND IGNORED!");
+                    return;
+                }
+                //MUL r1 = r2 / r3 
+                int result = r2 / r3;
+                //System.Console.WriteLine($"Dividing {r2} to {r3}: Result {result} into {r1}");
+                Memory.PutValueInRegister(r1, result);
+                //Write Back Debug
+                DebugPrintWriteBack($"Div Write Back {result}");
+            }
+            #endregion
+            #region Branch processes
             static void BranchEqual(int newPCPosition, int value){
                 if(value == 0) {
                     ProgramCounter = value;
@@ -317,6 +545,17 @@ namespace MyProcessor
                     DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {value}");
                 } else DebugPrintWriteBack($"BranchNotEqual Write Back: didnt change PC");
             }
+            #endregion
+            #region Memory Processes
+            static void loadDirectly(string r1, int r2){
+                //Load r2's value into r1
+                //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
+                Memory.PutValueInRegister(r1, r2);
+                //Write Back Debug
+                DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
+            }
+            #endregion
+            #region Debugging 
             static void DebugPrint(string debugPrint){
                 if(ExcutionUnitDebug == true){
                     Console.WriteLine(debugPrint);
@@ -327,6 +566,7 @@ namespace MyProcessor
                     Console.WriteLine(debugPrint);
                 }
             }
+            #endregion
         }
         #endregion
 
@@ -340,6 +580,7 @@ namespace MyProcessor
                     pipes[i].ActiveCommand = null;
                     pipes[i].CommandHistory = null;
                     pipes[i].instructionCycles = 0;
+                    pipes[i].numCyclesBusyFor = 0;
                     //We only have two registers per pipe
                     pipes[i].valueRegisters = new int[2];
                 }
@@ -377,7 +618,9 @@ namespace MyProcessor
                 for(int i = 0; NumberOfPipes > i; i++){
                     if(ProgramCounter < instructionList.Length){
                         if(pipes[i].ActiveCommand == null || pipes[i].ActiveCommand == "Waiting"){
-                            //Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
+                            //Debug assignment
+                            if(PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
+
                             PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
                             ProgramCounter++;
 
@@ -416,7 +659,12 @@ namespace MyProcessor
                     PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Excute", pipeName);
                 }
                 else if(Pipe.pipes[pipeName].ActiveCommand == "Excute"){
-                    PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Waiting", pipeName);
+                    //Check to see if the pipe is still excuting 
+                    if(Pipe.pipes[pipeName].numCyclesBusyFor == 0){
+                        PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Waiting", pipeName);
+                    } else {
+                        PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Excute", pipeName);
+                    }
                 }
                 else {
                     Console.WriteLine($"Pipe {Pipe.pipes[pipeName].Name} has a unrecognised active command");
@@ -446,8 +694,13 @@ namespace MyProcessor
                 Decode(pipeName);
             }
             else if(command == "Excute"){
-                //We excute
-                ALU.excutionUnitManager(pipeName);
+                //We check to see if it's at the end of the excution (this is how different length running commands are handled)
+                if(Pipe.pipes[pipeName].numCyclesBusyFor == 0){
+                    //We excute
+                    ExcutionUnits.excutionUnitManager(pipeName);
+                } else {
+                    Pipe.pipes[pipeName].numCyclesBusyFor--;
+                }
             }
             return;
             }
