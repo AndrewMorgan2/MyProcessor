@@ -21,13 +21,14 @@ namespace MyProcessor
         public string CurrentInstruction;
         //Opcode from decode
         public string Opcode;
-        //Where the operationw will end up
+        //Where the operation will end up
         public string Destination;
         public int[] valueRegisters;
         public int instructionCycles;
         //Used to implement division/multiple/load/store taking more than one cycle
         public int numCyclesBusyFor;
         public bool busy;
+        public int issued;
     }
     struct cache{
         public int[] memory;
@@ -49,6 +50,8 @@ namespace MyProcessor
         public string destination;
         public int value1;
         public int value2;
+        public int issuedOrder;
+        public int result;
     }
     enum excutionUnitType{
         ALU, Branch, LoadStore
@@ -66,7 +69,9 @@ namespace MyProcessor
         static int LoadAndStoreUnitNumber = 1;
         static int SizeOfReservationStation = 3;
         static bool ReservationStationsUsed = true;
+        static int SizeOfReOrderBuffer = 20;
         static int ProgramCounter = 0;
+        static int ExcutionOrder = 0;
         //Total cycles used 
         static int Totalcycles = 0;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
@@ -88,6 +93,7 @@ namespace MyProcessor
         static bool ReserveStationReadOut = false;
         static bool ReserveStationHistory = true;
         static bool PipeAssignmentDebug = false;
+        static bool ReOrderBufferDebug = true;
         static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
         static int[] cacheCalls = new int[NumberOfCache];
@@ -96,11 +102,12 @@ namespace MyProcessor
         static void Main(string[] args)
         {
             Console.WriteLine("----------------  Starting   ----------------");
-            #region Instatiate pipes, register file and reservation stations
+            #region Instatiate pipes, memory, reorder buffer and reservation stations
             //Instatiate Pipes and Memory
             Pipe.makePipes();
             Memory.makeMemory();
             ExcutionUnits.makeExcutionUnits();
+            ReOrderBuffer.makeReOrderBuffer();
             #endregion
             
             #region Run Processor
@@ -222,7 +229,7 @@ namespace MyProcessor
                     Console.WriteLine(debug);
                 }
             }
-            if(ReserveStationHistory == true && ReservationStationsUsed ==true){
+            if(ReserveStationHistory == true && ReservationStationsUsed == true){
                 Console.WriteLine("----------------   RS history    ----------------");
                  for(int i = 0; i < ALUUnitNumber; i++){
                     string debug = $"- Reserve station ALU[{i}] history {ExcutionUnits.ALUunits[i].excutionHistory}";
@@ -238,6 +245,7 @@ namespace MyProcessor
                 }
             }
             Console.WriteLine($"Total cycles taken to complete the program {Totalcycles}");
+            Console.WriteLine($"RoB at {ReOrderBuffer.LastExcutionOrder} while PC at {ExcutionOrder}");
             #endregion
         }
 
@@ -377,7 +385,9 @@ namespace MyProcessor
                     opCode = Pipe.pipes[pipeName].Opcode, 
                     destination = Pipe.pipes[pipeName].Destination, 
                     value1 = Pipe.pipes[pipeName].valueRegisters[0], 
-                    value2 = Pipe.pipes[pipeName].valueRegisters[1]
+                    value2 = Pipe.pipes[pipeName].valueRegisters[1],
+                    issuedOrder = Pipe.pipes[pipeName].issued,
+                    result = 0
                 };
                 if(ReservationStationsUsed == true){
                     excutionUnitType type;
@@ -389,12 +399,12 @@ namespace MyProcessor
                     if(Pipe.pipes[pipeName].busy == true){
                         if(Pipe.pipes[pipeName].numCyclesBusyFor == 0){
                             //We excute
-                            ExcutionAfterTime(pipeName, false, newCommand, ref Branchunits[0]);
+                            ExcutionAfterTime(pipeName, false, ref newCommand, ref Branchunits[0]);
                         } else {
                             Pipe.pipes[pipeName].numCyclesBusyFor--;
                         }
                     } else {
-                        ExcutionUnit(pipeName, false, newCommand);
+                        ExcutionUnit(pipeName, false, ref newCommand);
                     }
                 }
             }
@@ -444,15 +454,15 @@ namespace MyProcessor
                     if(units[i].numberOfCommandsInTheStation > 0 ){
                         if(units[i].busy == false){
                             units[i].excutionHistory = units[i].excutionHistory + " | Quick Run " + units[i].resStation[0].opCode;
-                            ExcutionUnit(i, true, units[i].resStation[0]);
+                            ExcutionUnit(i, true, ref units[i].resStation[0]);
                             if(units[i].busy == false) PopLastCommandFromReserveStations(ref units[i]);
                         } else {
                             if(units[i].cyclesBusyFor == 0){
-                                units[i].excutionHistory = units[i].excutionHistory + " | finishing " + units[i].resStation[0].opCode;
-                                ExcutionAfterTime(i, true, units[i].resStation[0], ref units[0]);
+                                units[i].excutionHistory = units[i].excutionHistory + " | Finishing " + units[i].resStation[0].opCode;
+                                ExcutionAfterTime(i, true, ref units[i].resStation[0], ref units[0]);
                                 PopLastCommandFromReserveStations(ref units[i]);
                             }else{
-                                units[i].excutionHistory = units[i].excutionHistory + " | doing " + units[i].resStation[0].opCode;
+                                units[i].excutionHistory = units[i].excutionHistory + " | Doing " + units[i].resStation[0].opCode;
                                 units[i].cyclesBusyFor--;
                             }
                         }
@@ -463,13 +473,13 @@ namespace MyProcessor
                 if(unit.resStation[0].Equals(new command{})) return;
 
                 unit.historyResStation = unit.historyResStation + unit.resStation[0].opCode + " | ";
-                for(int i = 1; i < SizeOfReservationStation; i++){
-                    unit.resStation[i] = unit.resStation[i - 1]; 
+                for(int i = 0; i < SizeOfReservationStation - 1; i++){
+                    unit.resStation[i] = unit.resStation[i + 1]; 
                 }
                 unit.resStation[SizeOfReservationStation - 1] = new command{};
                 unit.numberOfCommandsInTheStation--;
             }
-            static void ExcutionUnit(int name, bool resStations, command Command){
+            static void ExcutionUnit(int name, bool resStations, ref command Command){
                 //Here's where we decide what to actually do
                 //REGISTER COMMANDS
                 if(Command.opCode == "LD"){
@@ -477,7 +487,7 @@ namespace MyProcessor
                     //Sorted to ldc at decode so we shouldn't ever run this 
                     Console.WriteLine("ERROR ----- We have command LD where we should have LDC, maybe decode failed?");
                 }
-                if(Command.opCode == "LDC"){
+                else if(Command.opCode == "LDC"){
                     //Load Register directly
                     if(resStations == true){
                         LoadStoreunits[name].cyclesBusyFor = loadAndStoreCycles;
@@ -490,27 +500,27 @@ namespace MyProcessor
                 }
 
                 //BRANCH COMMANDS
-                if(Command.opCode == "BEQ"){
-                    BranchEqual(Command.value1, Command.value2);
+                else if(Command.opCode == "BEQ"){
+                    BranchEqual(Command.value1, Command.value2, ref Command);
                 }
-                if(Command.opCode == "BNE"){
-                    BranchNotEqual(Command.value1, Command.value2);
+                else if(Command.opCode == "BNE"){
+                    BranchNotEqual(Command.value1, Command.value2, ref Command);
                 }
 
                 //ARTHEMETRIC
-                if(Command.opCode == "ADDI"){
-                    addiEU(Command.destination, Command.value1, Command.value2);
+                else if(Command.opCode == "ADDI"){
+                    addiEU(Command.destination, Command.value1, Command.value2, ref Command);
                 }
-                if(Command.opCode == "ADD"){
-                    addEU(Command.destination, Command.value1, Command.value2);
+                else if(Command.opCode == "ADD"){
+                    addEU(Command.destination, Command.value1, Command.value2, ref Command);
                 }
-                if(Command.opCode == "SUB"){
-                    subEU(Command.destination, Command.value1, Command.value2);
+                else if(Command.opCode == "SUB"){
+                    subEU(Command.destination, Command.value1, Command.value2, ref Command);
                 }
-                if(Command.opCode == "COMP"){
-                    compare(Command.destination, Command.value1, Command.value2);
+                else if(Command.opCode == "COMP"){
+                    compare(Command.destination, Command.value1, Command.value2,  ref Command);
                 }
-                if(Command.opCode == "MUL"){
+                else if(Command.opCode == "MUL"){
                     if(resStations == true){
                         ALUunits[name].cyclesBusyFor = multiplyCycles;
                         ALUunits[name].busy = true;
@@ -520,7 +530,7 @@ namespace MyProcessor
                         Pipe.pipes[name].busy = true;
                     }
                 }
-                if(Command.opCode == "DIV"){
+                else if(Command.opCode == "DIV"){
                     if(resStations == true){
                         ALUunits[name].cyclesBusyFor = divisionCycles;
                         ALUunits[name].busy = true;
@@ -529,9 +539,11 @@ namespace MyProcessor
                         Pipe.pipes[name].numCyclesBusyFor = divisionCycles;
                         Pipe.pipes[name].busy = true;
                     }
+                }else {
+                    Console.WriteLine($"EEXCUTION UNIT RECIEVED UNREADABLE OPCODE {Command.opCode}");
                 }
             }
-            static public void ExcutionAfterTime(int name, bool resStations, command Command, ref excutionUnit unit){
+            static public void ExcutionAfterTime(int name, bool resStations, ref command Command, ref excutionUnit unit){
                 if(resStations == true){
                     unit.busy = false;
                 }else{
@@ -539,66 +551,74 @@ namespace MyProcessor
                 }
                 if(Command.opCode == "LDC"){
                     //Load Register directly
-                    loadDirectly(Command.destination, Command.value1);
+                    loadDirectly(Command.destination, Command.value1, ref Command);
                 }
                 else if(Command.opCode == "MUL"){
-                    mulEU(Command.destination, Command.value1, Command.value2);
+                    mulEU(Command.destination, Command.value1, Command.value2, ref Command);
                 }
                 else if(Command.opCode == "DIV"){
-                    divEU(Command.destination, Command.value1, Command.value2);
+                    divEU(Command.destination, Command.value1, Command.value2, ref Command);
                 }else Console.WriteLine($"DETECTED NONE LONG EXCUTION FUNCTION ENTERING EXCUTION AFTER TIME {Command.opCode} {name} {Totalcycles} {Pipe.pipes[name].busy}");
             }
             #region ALU processes
-            static void addEU(string r1, int r2, int r3){
+            static void addEU(string r1, int r2, int r3, ref command commandPassed){
                 //ADD r1 = r2 + r3
                 int result = r2 + r3;
                 //System.Console.WriteLine($"Adding {r2} to {r3}: Result {result}");
-                Memory.PutValueInRegister(r1, result);
+                commandPassed.result = result;
+                ReOrderBuffer.addCommand(commandPassed);
+
                 //Write Back Debug
                 DebugPrintWriteBack($"Add Write Back {result}");
             }
-            static void subEU(string r1, int r2, int r3){
+            static void subEU(string r1, int r2, int r3, ref command commandPassed){
                 //SUB r1 = r2 - r3 
                 int result = r2 - r3;
                 //System.Console.WriteLine($"Subtracting {r2} to {r3}: Result {result}");
-                Memory.PutValueInRegister(r1, result);
+                commandPassed.result = result;
+                ReOrderBuffer.addCommand(commandPassed);
                 //Write Back Debug
                 DebugPrintWriteBack($"Sub Write Back {result}");
             }
-            static void addiEU(string r1, int r2, int r3){
+            static void addiEU(string r1, int r2, int r3, ref command commandPassed){
                 //ADDI r1 increamented by r2(value)
                 int result = r2 + r3;
                 //System.Console.WriteLine($"Adding register {r1} to {x}: Result {result}");
-                Memory.PutValueInRegister(r1, result);
+                commandPassed.result = result;
+                ReOrderBuffer.addCommand(commandPassed);
                 //Write Back Debug
                 DebugPrintWriteBack($"AddI Write Back {result}");
             }
-            static void compare(string r1, int r2, int r3){
+            static void compare(string r1, int r2, int r3, ref command commandPassed){
                 if(r2 < r3){
-                    Memory.PutValueInRegister(r1, -1);
+                    commandPassed.result = -1;
+                    ReOrderBuffer.addCommand(commandPassed);
                     //Write Back Debug
                     DebugPrintWriteBack($"Compare Write Back: loaded {-1} into {r1}");
                 }
                 else if(r2 > r3){
-                    Memory.PutValueInRegister(r1, 1); 
+                    commandPassed.result = 1;
+                    ReOrderBuffer.addCommand(commandPassed); 
                     //Write Back Debug
                     DebugPrintWriteBack($"Compare Write Back: loaded {1} into {r1}");
                 }
                 else {
-                    Memory.PutValueInRegister(r1, 0);                
+                    commandPassed.result = 0;
+                    ReOrderBuffer.addCommand(commandPassed);               
                     //Write Back Debug
                     DebugPrintWriteBack($"Compare Write Back: loaded {0} into {r1}");
                 }
             }
-            static void mulEU(string r1, int r2, int r3){
+            static void mulEU(string r1, int r2, int r3, ref command commandPassed){
                 //MUL r1 = r2 * r3 
                 int result = r2 * r3;
                 //System.Console.WriteLine($"Multiplying {r2} to {r3}: Result {result}");
-                Memory.PutValueInRegister(r1, result);
+                commandPassed.result = result;
+                ReOrderBuffer.addCommand(commandPassed);
                 //Write Back Debug
                 DebugPrintWriteBack($"Mul Write Back {result}");
             }
-            static void divEU(string r1, int r2, int r3){
+            static void divEU(string r1, int r2, int r3, ref command commandPassed){
                 if(r3 == 0){
                     Console.WriteLine("TRIED TO DIVIDE BY ZERO COMMAND IGNORED!");
                     return;
@@ -606,30 +626,31 @@ namespace MyProcessor
                 //MUL r1 = r2 / r3 
                 int result = r2 / r3;
                 //System.Console.WriteLine($"Dividing {r2} to {r3}: Result {result} into {r1}");
-                Memory.PutValueInRegister(r1, result);
+                commandPassed.result = result;
+                ReOrderBuffer.addCommand(commandPassed);
                 //Write Back Debug
                 DebugPrintWriteBack($"Div Write Back {result}");
             }
             #endregion
             #region Branch processes
-            static void BranchEqual(int newPCPosition, int value){
+            static void BranchEqual(int newPCPosition, int value, ref command commandPassed){
                 if(value == 0) {
-                    ProgramCounter = value;
+                    ReOrderBuffer.addCommand(commandPassed);
                     DebugPrintWriteBack($"BranchEqual Write Back: changed PC to {value}");
                 } else DebugPrintWriteBack($"BranchEqual Write Back: didnt change PC");
             }
-            static void BranchNotEqual(int newPCPosition, int value){
+            static void BranchNotEqual(int newPCPosition, int value, ref command commandPassed){
                 if(value != 0) {
-                    ProgramCounter = value;
+                    ReOrderBuffer.addCommand(commandPassed);
                     DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {value}");
                 } else DebugPrintWriteBack($"BranchNotEqual Write Back: didnt change PC");
             }
             #endregion
             #region Memory Processes
-            static void loadDirectly(string r1, int r2){
+            static void loadDirectly(string r1, int r2, ref command commandPassed){
                 //Load r2's value into r1
                 //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
-                Memory.PutValueInRegister(r1, r2);
+                ReOrderBuffer.addCommand(commandPassed);
                 //Write Back Debug
                 DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
             }
@@ -646,6 +667,68 @@ namespace MyProcessor
                 }
             }
             #endregion
+        }
+        #endregion
+
+        #region ReOrder Buffer
+        static class ReOrderBuffer{
+            static public command[] contenseOfReOrderBuffer;
+            static public int LastExcutionOrder;
+            static public void makeReOrderBuffer(){
+                contenseOfReOrderBuffer = new command[SizeOfReOrderBuffer];
+                LastExcutionOrder = 0;
+            }
+            //We are going to check to see if we should commit or we should keep in the reorder buffer
+            static public void addCommand(command newCommand){
+                if(newCommand.issuedOrder == LastExcutionOrder){
+                    //Send to commit unit
+                    Commit(newCommand);
+                } else {
+                    //Add to list in correct place 
+                    for(int i = 0; i < SizeOfReOrderBuffer; i++){
+                        //if empty place or issued earlier
+                        if(contenseOfReOrderBuffer[i].Equals(new command{}) || newCommand.issuedOrder < contenseOfReOrderBuffer[i].issuedOrder){
+                            //Check to see if the buffer is full
+                            if(!contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1].Equals(new command{})){
+                                Console.WriteLine("REORDER BUFFER IS TOO FULL FOR THE NEW COMMAND");
+                            }
+                            //Move all other commands down in the queue
+                            for(int x = SizeOfReOrderBuffer - 1; x > i; x--) { 
+                                contenseOfReOrderBuffer[x] = contenseOfReOrderBuffer[x-1];
+                            }
+                            DebugLog($"Put command in to reorder buffer {newCommand.opCode}");
+                            contenseOfReOrderBuffer[i] = newCommand;
+                            break;
+                        }
+                    }
+                }
+            }
+            static public void Commit(command Command){
+                //REGISTER COMMANDS
+                if(Command.opCode == "LDC"){
+                    Memory.PutValueInRegister(Command.destination, Command.value1);
+                    DebugLog($"Commited Load {Command.value1} to {Command.destination}");
+                }
+                //BRANCH COMMANDS
+                else if(Command.opCode == "BEQ" || Command.opCode == "BNE"){
+                   ProgramCounter = Command.value1;
+                   DebugLog($"Commited new pc {ProgramCounter}");
+                }
+                //ARTHEMETRIC
+                else if(Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" || 
+                        Command.opCode == "COMP"|| Command.opCode == "MUL" || Command.opCode == "DIV"){
+                    Memory.PutValueInRegister(Command.destination, Command.result);
+                    DebugLog($"Commited ALU {Command.result} to {Command.destination}");
+                }
+                else Console.WriteLine($"COMMIT GOT UNRECOGNISED OPCODE {Command.opCode}");
+                //Increase LastProgramCounterExcuted because we have committed again 
+                LastExcutionOrder++;
+
+                //Run to see if we can commit again!
+            }
+            static private void DebugLog(string debugPrint){
+                if(ReOrderBufferDebug == true) Console.WriteLine(debugPrint);
+            }
         }
         #endregion
 
@@ -702,7 +785,9 @@ namespace MyProcessor
                             if(PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
 
                             PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
+                            Pipe.pipes[i].issued = ExcutionOrder;
                             ProgramCounter++;
+                            ExcutionOrder++;
 
                             //What are all the other pipes up to 
                             for(int b = 0; NumberOfPipes > b; b++){
