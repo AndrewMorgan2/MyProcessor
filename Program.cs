@@ -93,7 +93,8 @@ namespace MyProcessor
         static bool ReserveStationReadOut = false;
         static bool ReserveStationHistory = true;
         static bool PipeAssignmentDebug = false;
-        static bool ReOrderBufferDebug = true;
+        static bool ReOrderBufferDebug = false;
+        static bool ReOrderBufferHistoryDebug = true;
         static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
         static int[] cacheCalls = new int[NumberOfCache];
@@ -244,8 +245,11 @@ namespace MyProcessor
                     Console.WriteLine(debug);
                 }
             }
-            Console.WriteLine($"Total cycles taken to complete the program {Totalcycles}");
+            if(ReOrderBufferHistoryDebug == true){
+                ReOrderBuffer.PrintOutReOrderBufferHistory();
+            }
             Console.WriteLine($"RoB at {ReOrderBuffer.LastExcutionOrder} while PC at {ExcutionOrder}");
+            Console.WriteLine($"Total cycles taken to complete the program {Totalcycles}");
             #endregion
         }
 
@@ -635,15 +639,27 @@ namespace MyProcessor
             #region Branch processes
             static void BranchEqual(int newPCPosition, int value, ref command commandPassed){
                 if(value == 0) {
+                    commandPassed.result = 1;
                     ReOrderBuffer.addCommand(commandPassed);
                     DebugPrintWriteBack($"BranchEqual Write Back: changed PC to {value}");
-                } else DebugPrintWriteBack($"BranchEqual Write Back: didnt change PC");
+                } else {
+                    //Even if we dont take the branch we should tell the RoB that an action should be taken
+                    commandPassed.result = 0;
+                    ReOrderBuffer.addCommand(commandPassed);
+                    DebugPrintWriteBack($"BranchEqual Write Back: didnt change PC");
+                }
             }
             static void BranchNotEqual(int newPCPosition, int value, ref command commandPassed){
                 if(value != 0) {
+                    commandPassed.result = 1;
                     ReOrderBuffer.addCommand(commandPassed);
                     DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {value}");
-                } else DebugPrintWriteBack($"BranchNotEqual Write Back: didnt change PC");
+                } else {
+                    //Even if we dont take the branch we should tell the RoB that an action should be taken
+                    commandPassed.result = 0;
+                    ReOrderBuffer.addCommand(commandPassed);
+                    DebugPrintWriteBack($"BranchNotEqual Write Back: didnt change PC");
+                }
             }
             #endregion
             #region Memory Processes
@@ -674,12 +690,17 @@ namespace MyProcessor
         static class ReOrderBuffer{
             static public command[] contenseOfReOrderBuffer;
             static public int LastExcutionOrder;
+            static private string HistoryInput;
+            static private string HistoryOutput;
             static public void makeReOrderBuffer(){
                 contenseOfReOrderBuffer = new command[SizeOfReOrderBuffer];
                 LastExcutionOrder = 0;
+                HistoryOutput = "";
+                HistoryInput = "";
             }
             //We are going to check to see if we should commit or we should keep in the reorder buffer
             static public void addCommand(command newCommand){
+                HistoryInput = HistoryInput + newCommand.opCode + " | ";
                 if(newCommand.issuedOrder == LastExcutionOrder){
                     //Send to commit unit
                     Commit(newCommand);
@@ -696,7 +717,7 @@ namespace MyProcessor
                             for(int x = SizeOfReOrderBuffer - 1; x > i; x--) { 
                                 contenseOfReOrderBuffer[x] = contenseOfReOrderBuffer[x-1];
                             }
-                            DebugLog($"Put command in to reorder buffer {newCommand.opCode}");
+                            DebugLog($"Put command in to reorder buffer {newCommand.opCode} because Last EX is {LastExcutionOrder} and issued is {newCommand.issuedOrder}");
                             contenseOfReOrderBuffer[i] = newCommand;
                             break;
                         }
@@ -704,15 +725,18 @@ namespace MyProcessor
                 }
             }
             static public void Commit(command Command){
+                HistoryOutput = HistoryOutput + Command.opCode + " | ";
                 //REGISTER COMMANDS
                 if(Command.opCode == "LDC"){
                     Memory.PutValueInRegister(Command.destination, Command.value1);
                     DebugLog($"Commited Load {Command.value1} to {Command.destination}");
                 }
-                //BRANCH COMMANDS
+                //BRANCH COMMANDS result:1 => take it || result:) => Dont take it
                 else if(Command.opCode == "BEQ" || Command.opCode == "BNE"){
-                   ProgramCounter = Command.value1;
-                   DebugLog($"Commited new pc {ProgramCounter}");
+                    if(Command.result == 1) {
+                        ProgramCounter = Command.value1;
+                        DebugLog($"Commited new pc {ProgramCounter}");
+                    }
                 }
                 //ARTHEMETRIC
                 else if(Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" || 
@@ -725,9 +749,30 @@ namespace MyProcessor
                 LastExcutionOrder++;
 
                 //Run to see if we can commit again!
+                if(contenseOfReOrderBuffer[0].issuedOrder == LastExcutionOrder){
+                    DebugLog($"Command in reorder buffer is now commitable {contenseOfReOrderBuffer[0].opCode}");
+                    command newCommand = contenseOfReOrderBuffer[0];
+                    PopFromReOrderBuffer();
+                    Commit(newCommand);
+                }
+            }
+            static void PopFromReOrderBuffer(){
+                if(contenseOfReOrderBuffer[0].Equals(new command{})) return;
+
+                for(int i = 0; i < SizeOfReOrderBuffer - 1; i++){
+                    contenseOfReOrderBuffer[i] = contenseOfReOrderBuffer[i + 1]; 
+                }
+                contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1] = new command{};
             }
             static private void DebugLog(string debugPrint){
                 if(ReOrderBufferDebug == true) Console.WriteLine(debugPrint);
+            }
+            static public void PrintOutReOrderBufferHistory(){
+                Console.WriteLine("---------------- ReOrder Buffer History ----------------");
+                Console.Write("--- ReOrder Buffer Input History");
+                Console.WriteLine($"{HistoryInput}");
+                Console.Write("--- ReOrder Buffer Output History");
+                Console.WriteLine($"{HistoryOutput}");
             }
         }
         #endregion
