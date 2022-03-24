@@ -54,7 +54,7 @@ namespace MyProcessor
         public int result;
     }
     enum excutionUnitType{
-        ALU, Branch, LoadStore
+        ALU, Branch, LoadStore, Unified
     }
     #endregion
 
@@ -69,6 +69,7 @@ namespace MyProcessor
         static int LoadAndStoreUnitNumber = 1;
         static int SizeOfReservationStation = 3;
         static bool ReservationStationsUsed = true;
+        static bool UnifiedReservationStationsUsed = true;
         static int SizeOfReOrderBuffer = 20;
         static int ProgramCounter = 0;
         static int ExcutionOrder = 0;
@@ -85,16 +86,16 @@ namespace MyProcessor
         static int multiplyCycles = 2;
         #endregion
         #region Counting Vars for benchmarking and debug bools
-        static bool PipeDebug = true;
+        static bool PipeDebug = false;
         static bool MemoryDebug = false;
         static bool ExcutionUnitDebug = false;
         static bool WriteBackDebug = false;
         static bool MemoryReadOut = false;
         static bool ReserveStationReadOut = false;
-        static bool ReserveStationHistory = true;
+        static bool ReserveStationHistory = false;
         static bool PipeAssignmentDebug = false;
         static bool ReOrderBufferDebug = false;
-        static bool ReOrderBufferHistoryDebug = true;
+        static bool ReOrderBufferHistoryDebug = false;
         static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
         static int[] cacheCalls = new int[NumberOfCache];
@@ -183,6 +184,7 @@ namespace MyProcessor
             #endregion
 
             #region Printing Processor History
+            Console.WriteLine("----------------  Finished   ----------------");
             if(PipeDebug == true){
                 Console.WriteLine("----------------  Pipes history    ----------------");
                 int actionsTaken = 0;
@@ -218,30 +220,36 @@ namespace MyProcessor
             if(ReserveStationReadOut == true && ReservationStationsUsed == true){
                 Console.WriteLine("----------------   RS readOut    ----------------");
                 for(int i = 0; i < ALUUnitNumber; i++){
-                    string debug = $"- Reserve station ALU[{i}] is {ExcutionUnits.ALUunits[i].historyResStation}";
+                    string debug;
+                    debug = $"- Reserve station ALU[{i}] is {ExcutionUnits.ALUunits[i].historyResStation}";
                     Console.WriteLine(debug);
                 }
                 for(int i = 0; i < BranchUnitNumber; i++){
-                    string debug = $"- Reserve station Branch[{i}] is {ExcutionUnits.Branchunits[i].historyResStation}";
+                    string debug;
+                    debug = $"- Reserve station Branch[{i + ALUUnitNumber}] is {ExcutionUnits.Branchunits[i].historyResStation}";
                     Console.WriteLine(debug);
                 }
                 for(int i = 0; i < LoadAndStoreUnitNumber; i++){
-                    string debug = $"- Reserve station Load Store[{i}] is {ExcutionUnits.LoadStoreunits[i].historyResStation}";
+                    string debug;
+                    debug = $"- Reserve station Load Store[{i + ALUUnitNumber + BranchUnitNumber}] is {ExcutionUnits.LoadStoreunits[i].historyResStation}";
                     Console.WriteLine(debug);
                 }
             }
             if(ReserveStationHistory == true && ReservationStationsUsed == true){
                 Console.WriteLine("----------------   RS history    ----------------");
                  for(int i = 0; i < ALUUnitNumber; i++){
-                    string debug = $"- Reserve station ALU[{i}] history {ExcutionUnits.ALUunits[i].excutionHistory}";
+                    string debug;
+                    debug = $"- Reserve station ALU[{i}] is {ExcutionUnits.ALUunits[i].excutionHistory}";
                     Console.WriteLine(debug);
                 }
                 for(int i = 0; i < BranchUnitNumber; i++){
-                    string debug = $"- Reserve station Branch[{i}] is {ExcutionUnits.Branchunits[i].excutionHistory}";
+                    string debug;
+                    debug = $"- Reserve station Branch[{i}] is {ExcutionUnits.Branchunits[i].excutionHistory}";
                     Console.WriteLine(debug);
                 }
                 for(int i = 0; i < LoadAndStoreUnitNumber; i++){
-                    string debug = $"- Reserve station Load Store[{i}] is {ExcutionUnits.LoadStoreunits[i].excutionHistory}";
+                    string debug;
+                    debug = $"- Reserve station Load Store[{i }] is {ExcutionUnits.LoadStoreunits[i].excutionHistory}";
                     Console.WriteLine(debug);
                 }
             }
@@ -345,6 +353,7 @@ namespace MyProcessor
             static public excutionUnit[] ALUunits = new excutionUnit[ALUUnitNumber];
             static public excutionUnit[] Branchunits = new excutionUnit[BranchUnitNumber];
             static public excutionUnit[] LoadStoreunits = new excutionUnit[LoadAndStoreUnitNumber];
+            static public command[] UnifiedReserveStations = new command[SizeOfReservationStation];
             #endregion
             static public void makeExcutionUnits(){
                 for(int i = 0; i < ALUUnitNumber; i++){
@@ -395,7 +404,8 @@ namespace MyProcessor
                 };
                 if(ReservationStationsUsed == true){
                     excutionUnitType type;
-                    if(newCommand.opCode == "LDC" || newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
+                    if(UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
+                    else if(newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
                     else if(newCommand.opCode == "BEQ" || newCommand.opCode == "BNE") type = excutionUnitType.Branch;
                     else type = excutionUnitType.ALU;
                     AssignToExcutionUnit(type,newCommand);
@@ -418,6 +428,7 @@ namespace MyProcessor
                 int numberOfUnits = 0;
                 int exUnitToBeGivenCommand = 0;
                 int posResStation = 0;
+                //Assign number of units and units
                 if(excutionUnitType.ALU == type){
                     units = ALUunits;
                     numberOfUnits = ALUUnitNumber;
@@ -430,28 +441,89 @@ namespace MyProcessor
                     units = LoadStoreunits;
                     numberOfUnits = LoadAndStoreUnitNumber;
                 }
-                for(int i = 0; i < numberOfUnits; i++){
-                    //Start by assigning to the first ALU unit
-                    if(i == 0) {
-                        exUnitToBeGivenCommand = 0;
-                        posResStation = units[i].numberOfCommandsInTheStation ;
-                    }
-                    //Check to see if one has less commands in than the other
-                    else {
-                        if(units[i].numberOfCommandsInTheStation < posResStation){
-                            exUnitToBeGivenCommand = i;
-                            posResStation = units[i].numberOfCommandsInTheStation;
+                
+                if(excutionUnitType.Unified == type){
+                    for(int i = 0; i < SizeOfReservationStation; i++){
+                        if(UnifiedReserveStations[i].Equals(new command{})){
+                            UnifiedReserveStations[i] = newCommand;
+                            break;
                         }
                     }
                 }
-                //Put command in RS
-                units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
-                units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
+                else{
+                    posResStation = LocateCorrectReserveStation(numberOfUnits, units, ref exUnitToBeGivenCommand);  
+                    //Put command in RS
+                    units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
+                    units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
+                }
+            }
+            static int LocateCorrectReserveStation(int unitNumber, excutionUnit[] units, ref int exUnitToBeGivenCommand){
+                int posResStation = 0;
+                for(int i = 0; i < unitNumber; i++){
+                        if(i == 0) {
+                            exUnitToBeGivenCommand = 0;
+                            posResStation = units[i].numberOfCommandsInTheStation ;
+                        }
+                        else {
+                            if(units[i].numberOfCommandsInTheStation < posResStation){
+                                exUnitToBeGivenCommand = i;
+                                posResStation = units[i].numberOfCommandsInTheStation;
+                        }
+                    }
+                }
+                return posResStation;
             }
             static public void ProcessReserveStations(){
+                if(UnifiedReservationStationsUsed == true){
+                    UnifiedReserveStationDistributeCommands();
+                }
                 ProcessUnit(ALUunits);
                 ProcessUnit(Branchunits);
                 ProcessUnit(LoadStoreunits);
+            }
+            static void UnifiedReserveStationDistributeCommands(){
+                command[] newUnifiedReservation = new command[SizeOfReservationStation];
+                int placeInNewUnifiedReservationStation = 0;
+                //Cycle though the unified reservation station
+                for(int b = 0; b < SizeOfReservationStation; b++){
+                    //If it's empty do nothing 
+                    if(UnifiedReserveStations[b].Equals(new command{})) break;
+
+                    command newCommand = UnifiedReserveStations[b];
+                    int unitNumber = 0;
+                    bool sentToExcutionUnit = false;
+                    excutionUnit[] units =  new excutionUnit[0];
+                    //Decide where teh command should go
+                    if(newCommand.opCode == "LDC") {
+                        units = LoadStoreunits;
+                        unitNumber = LoadAndStoreUnitNumber;
+                    }
+                    else if(newCommand.opCode == "BEQ" || newCommand.opCode == "BNE"){
+                        units = Branchunits;
+                        unitNumber = BranchUnitNumber;
+                    } 
+                    else {
+                        units = ALUunits;
+                        unitNumber = ALUUnitNumber;
+                    }
+                    //See if there's a space for the command
+                    for(int a = 0; a < unitNumber; a++){
+                        if(units[a].busy == false){
+                            //Console.WriteLine($"Command from Unified RS to Excution Unit: {newCommand.opCode}");
+                            units[a].resStation[0]= newCommand;
+                            units[a].numberOfCommandsInTheStation++;
+                            sentToExcutionUnit= true;
+                            break;
+                        }
+                    }
+                    //Recreate a list of unsent commands
+                    if(sentToExcutionUnit == false) {
+                        newUnifiedReservation[placeInNewUnifiedReservationStation] = newCommand;
+                        placeInNewUnifiedReservationStation++;
+                    }
+                }
+                //Redefine Unified RS with commands not taken out 
+                UnifiedReserveStations = newUnifiedReservation;
             }
             static void ProcessUnit(excutionUnit[] units){
                 for(int i = 0; i < units.Length; i++){
@@ -700,6 +772,7 @@ namespace MyProcessor
             }
             //We are going to check to see if we should commit or we should keep in the reorder buffer
             static public void addCommand(command newCommand){
+                DebugLog($"Recieved command {newCommand.opCode}");
                 HistoryInput = HistoryInput + newCommand.opCode + " | ";
                 if(newCommand.issuedOrder == LastExcutionOrder){
                     //Send to commit unit
