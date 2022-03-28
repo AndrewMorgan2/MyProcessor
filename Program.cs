@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,6 +24,7 @@ namespace MyProcessor
         public string Opcode;
         //Where the operation will end up
         public string Destination;
+        public List<string> dependencies;
         public int[] valueRegisters;
         public int instructionCycles;
         //Used to implement division/multiple/load/store taking more than one cycle
@@ -48,6 +50,7 @@ namespace MyProcessor
     struct command{
         public string opCode;
         public string destination;
+        public List<string> dependencies;
         public int value1;
         public int value2;
         public int issuedOrder;
@@ -95,6 +98,7 @@ namespace MyProcessor
         static bool ReserveStationHistory = false;
         static bool PipeAssignmentDebug = false;
         static bool ReOrderBufferDebug = false;
+        static bool ReOrderBufferDebugOutput = false;
         static bool ReOrderBufferHistoryDebug = false;
         static bool InfiniteLoopDetection = true;
         static int waitingCycles = 0;
@@ -127,7 +131,7 @@ namespace MyProcessor
                 //Keep track of how many cycles are used
                 Totalcycles++;
             }
-            Console.WriteLine("All instructions have been fetched!");
+            Console.WriteLine("---------------- All instructions have been fetched! ----------------");
             
             //Excute the instructions, that are still in pipes
             int pipesClear = 0;
@@ -400,15 +404,11 @@ namespace MyProcessor
                     value1 = Pipe.pipes[pipeName].valueRegisters[0], 
                     value2 = Pipe.pipes[pipeName].valueRegisters[1],
                     issuedOrder = Pipe.pipes[pipeName].issued,
+                    dependencies = Pipe.pipes[pipeName].dependencies,
                     result = 0
                 };
                 if(ReservationStationsUsed == true){
-                    excutionUnitType type;
-                    if(UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
-                    else if(newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
-                    else if(newCommand.opCode == "BEQ" || newCommand.opCode == "BNE") type = excutionUnitType.Branch;
-                    else type = excutionUnitType.ALU;
-                    AssignToExcutionUnit(type,newCommand);
+                    AssignToExcutionUnit(newCommand);
                 }else{
                     if(Pipe.pipes[pipeName].busy == true){
                         if(Pipe.pipes[pipeName].numCyclesBusyFor == 0){
@@ -422,7 +422,12 @@ namespace MyProcessor
                     }
                 }
             }
-            static void AssignToExcutionUnit(excutionUnitType type, command newCommand){
+            static public void AssignToExcutionUnit(command newCommand){
+                excutionUnitType type;
+                if(UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
+                else if(newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
+                else if(newCommand.opCode == "BEQ" || newCommand.opCode == "BNE") type = excutionUnitType.Branch;
+                else type = excutionUnitType.ALU;
                 //Just determines where to put the command
                 excutionUnit[] units = new excutionUnit[0];
                 int numberOfUnits = 0;
@@ -760,19 +765,19 @@ namespace MyProcessor
 
         #region ReOrder Buffer
         static class ReOrderBuffer{
-            static public command[] contenseOfReOrderBuffer;
+            static public List<command> contenseOfReOrderBuffer;
             static public int LastExcutionOrder;
             static private string HistoryInput;
             static private string HistoryOutput;
             static public void makeReOrderBuffer(){
-                contenseOfReOrderBuffer = new command[SizeOfReOrderBuffer];
+                contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
                 LastExcutionOrder = 0;
                 HistoryOutput = "";
                 HistoryInput = "";
             }
             //We are going to check to see if we should commit or we should keep in the reorder buffer
             static public void addCommand(command newCommand){
-                DebugLog($"Recieved command {newCommand.opCode}");
+                //DebugLog($"Recieved command {newCommand.opCode}");
                 HistoryInput = HistoryInput + newCommand.opCode + " | ";
                 if(newCommand.issuedOrder == LastExcutionOrder){
                     //Send to commit unit
@@ -786,12 +791,31 @@ namespace MyProcessor
                             if(!contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1].Equals(new command{})){
                                 Console.WriteLine("REORDER BUFFER IS TOO FULL FOR THE NEW COMMAND");
                             }
-                            //Move all other commands down in the queue
-                            for(int x = SizeOfReOrderBuffer - 1; x > i; x--) { 
-                                contenseOfReOrderBuffer[x] = contenseOfReOrderBuffer[x-1];
+                            //Check to see if there are true dependencies 
+                            //Check that r1 and r2 from new command aren't changed by commands above
+                            for(int a = 0; a < i; a++){
+                                if(newCommand.dependencies.Contains(contenseOfReOrderBuffer[a].destination)){
+                                    DebugLog($"{contenseOfReOrderBuffer[a].opCode} stopped {newCommand.opCode} due to dependency");
+                                    //send new Command back 
+                                    SendCommandBack(newCommand);
+                                    return;
+                                }
                             }
+                            //Check to see if there are true dependencies 
+                            //Check all commands below aren't changed by this new destination
+                            for(int x = SizeOfReOrderBuffer - 1; x > i; x--) { 
+                                //Check to see if there are commands below (stop when we hit a new command)
+                                if(contenseOfReOrderBuffer[x].Equals(new command{})) break;
+                                if(contenseOfReOrderBuffer[x].dependencies.Contains(newCommand.destination)){
+                                    DebugLog($"{newCommand.opCode} removed {contenseOfReOrderBuffer[x].opCode} due to dependency");
+                                    //We need to recalulate this command
+                                    SendCommandBack(newCommand);
+                                    contenseOfReOrderBuffer.Remove(contenseOfReOrderBuffer[x]);
+                                }
+                            }
+
                             DebugLog($"Put command in to reorder buffer {newCommand.opCode} because Last EX is {LastExcutionOrder} and issued is {newCommand.issuedOrder}");
-                            contenseOfReOrderBuffer[i] = newCommand;
+                            contenseOfReOrderBuffer.Insert(i, newCommand);
                             break;
                         }
                     }
@@ -802,32 +826,37 @@ namespace MyProcessor
                 //REGISTER COMMANDS
                 if(Command.opCode == "LDC"){
                     Memory.PutValueInRegister(Command.destination, Command.value1);
-                    DebugLog($"Commited Load {Command.value1} to {Command.destination}");
+                    DebugLogOutput($"Commited Load {Command.value1} to {Command.destination}");
                 }
                 //BRANCH COMMANDS result:1 => take it || result:) => Dont take it
                 else if(Command.opCode == "BEQ" || Command.opCode == "BNE"){
                     if(Command.result == 1) {
                         ProgramCounter = Command.value1;
-                        DebugLog($"Commited new pc {ProgramCounter}");
+                        DebugLogOutput($"Commited new pc {ProgramCounter}");
                     }
                 }
                 //ARTHEMETRIC
                 else if(Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" || 
                         Command.opCode == "COMP"|| Command.opCode == "MUL" || Command.opCode == "DIV"){
                     Memory.PutValueInRegister(Command.destination, Command.result);
-                    DebugLog($"Commited ALU {Command.result} to {Command.destination}");
+                    DebugLogOutput($"Commited ALU {Command.result} to {Command.destination}");
                 }
                 else Console.WriteLine($"COMMIT GOT UNRECOGNISED OPCODE {Command.opCode}");
                 //Increase LastProgramCounterExcuted because we have committed again 
                 LastExcutionOrder++;
 
+                //Check to see if buffer is empty
+                if(contenseOfReOrderBuffer[0].Equals(new command{})) return;
                 //Run to see if we can commit again!
                 if(contenseOfReOrderBuffer[0].issuedOrder == LastExcutionOrder){
-                    DebugLog($"Command in reorder buffer is now commitable {contenseOfReOrderBuffer[0].opCode}");
+                    DebugLogOutput($"Command in reorder buffer is now commitable {contenseOfReOrderBuffer[0].opCode}");
                     command newCommand = contenseOfReOrderBuffer[0];
                     PopFromReOrderBuffer();
                     Commit(newCommand);
                 }
+            }
+            static void SendCommandBack(command Command){
+                ExcutionUnits.AssignToExcutionUnit(Command);
             }
             static void PopFromReOrderBuffer(){
                 if(contenseOfReOrderBuffer[0].Equals(new command{})) return;
@@ -839,6 +868,9 @@ namespace MyProcessor
             }
             static private void DebugLog(string debugPrint){
                 if(ReOrderBufferDebug == true) Console.WriteLine(debugPrint);
+            }
+            static private void DebugLogOutput(string debugPrint){
+                if(ReOrderBufferDebugOutput == true) Console.WriteLine(debugPrint);
             }
             static public void PrintOutReOrderBufferHistory(){
                 Console.WriteLine("---------------- ReOrder Buffer History ----------------");
@@ -863,6 +895,7 @@ namespace MyProcessor
                     pipes[i].numCyclesBusyFor = 0;
                     //We only have two registers per pipe
                     pipes[i].valueRegisters = new int[2];
+                    pipes[i].dependencies = new List<string>();
                 }
             }
             static public void PipeReplaceCommand(string oldCommand, string newCommand, int pipeName){
@@ -1001,6 +1034,7 @@ namespace MyProcessor
                     int valueLoaded = 0;
                     if(r3.Contains('r') == true) {
                         valueLoaded = Memory.GetValueFromRegister(r3);
+                        Pipe.pipes[pipeName].dependencies.Add(r3);
                     } else valueLoaded =  Int32.Parse(r3);
                     opCode = "LDC";
                     Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
@@ -1011,6 +1045,7 @@ namespace MyProcessor
                     //Get value from register here (if possible)
                     if(r2.Contains('r') == true) {
                         Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
+                        Pipe.pipes[pipeName].dependencies.Add(r2);
                     } else Pipe.pipes[pipeName].valueRegisters[0] =  Int32.Parse(r2);
                     //Checks if there is more to decode
                     if(currentInstruction.Length > r2.Length + 1){
@@ -1019,6 +1054,7 @@ namespace MyProcessor
                         //Get value from register here (if possible)
                         if(r3.Contains('r') == true) {
                             Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
+                            Pipe.pipes[pipeName].dependencies.Add(r3);
                         } else Pipe.pipes[pipeName].valueRegisters[1] =  Int32.Parse(r3);
                     }
                 }
