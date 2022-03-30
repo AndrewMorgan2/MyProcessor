@@ -10,4 +10,5 @@ beq (branch if equal) newPCPostition, register || value (if 0 then branch)
 bne (branch if not equal) newPCPostition, register || value (if 1 || -1 then branch)
 
 //Operands to be added
-j (relative branch to address as an intermediate)
+jump (to instruction)
+NoP (do nothing)

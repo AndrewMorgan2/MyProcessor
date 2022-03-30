@@ -110,7 +110,7 @@ public static class ExcutionUnits
         excutionUnitType type;
         if (UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
         else if (newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
-        else if (newCommand.opCode == "BEQ" || newCommand.opCode == "BNE") type = excutionUnitType.Branch;
+        else if (newCommand.opCode == "BEQ" || newCommand.opCode == "BNE" || newCommand.opCode == "JUMP") type = excutionUnitType.Branch;
         else type = excutionUnitType.ALU;
         //Just determines where to put the command
         excutionUnit[] units = new excutionUnit[0];
@@ -308,13 +308,14 @@ public static class ExcutionUnits
         }
 
         //BRANCH COMMANDS
-        else if (Command.opCode == "BEQ")
-        {
+        else if (Command.opCode == "BEQ"){
             BranchEqual(Command.value1, Command.value2, ref Command);
         }
-        else if (Command.opCode == "BNE")
-        {
+        else if (Command.opCode == "BNE"){
             BranchNotEqual(Command.value1, Command.value2, ref Command);
+        }
+        else if(Command.opCode == "JUMP") {
+           ReOrderBuffer.addCommand(Command);
         }
 
         //ARTHEMETRIC
@@ -362,6 +363,8 @@ public static class ExcutionUnits
                 Pipe.pipes[name].busy = true;
             }
         }
+        //NOP
+        else if(Command.opCode == "NOP") ReOrderBuffer.addCommand(Command);
         else
         {
             Console.WriteLine($"EXCUTION UNIT RECIEVED UNREADABLE OPCODE {Command.opCode}");
@@ -519,7 +522,7 @@ public static class ExcutionUnits
         DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
     }
     #endregion
-    
+
     #region Debugging 
     static void DebugPrint(string debugPrint)
     {

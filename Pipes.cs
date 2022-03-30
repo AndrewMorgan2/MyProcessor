@@ -202,52 +202,66 @@ public class Pipe
         //We don't want the fetch so we get rid of that straight away 
         string currentInstruction = Pipe.pipes[pipeName].CurrentInstruction;
         string opCode = getNextPartFromText(currentInstruction);
-        currentInstruction = currentInstruction.Remove(0, opCode.Length + 1);
-        string destination = getNextPartFromText(currentInstruction);
-        currentInstruction = currentInstruction.Remove(0, destination.Length + 1);
+        string destination = "";
+        //Set defult pipe values 
+        pipes[pipeName].valueRegisters = new int[2];
+        pipes[pipeName].dependencies = new List<string>();
 
-        string r2;
-        //Change LD to LDC
-        if (opCode == "LD")
+        /*DECODE TENDS TO FAIL WHEN PROGRAMS ARE WRITTEN POORLY SO BEFORE 
+        CHANGING THIS CODE MAKE SURE ALL COMMANDS ARE CORRECTLY FORMATTED */
+        
+        //We dont want to keep decoding if we see NOP
+        if (opCode != "NOP")
         {
-            r2 = getNextPartFromText(currentInstruction);
-            currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
-            string r3 = currentInstruction;
-            //Get value from register here
-            //We leave r2 as a register
-            int valueLoaded = 0;
-            if (r3.Contains('r') == true)
+            currentInstruction = currentInstruction.Remove(0, opCode.Length + 1);
+            destination = getNextPartFromText(currentInstruction);
+            currentInstruction = currentInstruction.Remove(0, destination.Length + 1);
+            string r2;
+            //Change LD to LDC
+            if (opCode == "LD")
             {
-                valueLoaded = Memory.GetValueFromRegister(r3);
-                Pipe.pipes[pipeName].dependencies.Add(r3);
-            }
-            else valueLoaded = Int32.Parse(r3);
-            opCode = "LDC";
-            Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
-        }
-        //Decode Happens here
-        else
-        {
-            r2 = getNextPartFromText(currentInstruction);
-            //Get value from register here (if possible)
-            if (r2.Contains('r') == true)
-            {
-                Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
-                Pipe.pipes[pipeName].dependencies.Add(r2);
-            }
-            else Pipe.pipes[pipeName].valueRegisters[0] = Int32.Parse(r2);
-            //Checks if there is more to decode
-            if (currentInstruction.Length > r2.Length + 1)
-            {
+                r2 = getNextPartFromText(currentInstruction);
                 currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
                 string r3 = currentInstruction;
-                //Get value from register here (if possible)
+                //Get value from register here
+                //We leave r2 as a register
+                int valueLoaded = 0;
                 if (r3.Contains('r') == true)
                 {
-                    Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
+                    valueLoaded = Memory.GetValueFromRegister(r3);
                     Pipe.pipes[pipeName].dependencies.Add(r3);
                 }
-                else Pipe.pipes[pipeName].valueRegisters[1] = Int32.Parse(r3);
+                else valueLoaded = Int32.Parse(r3);
+                opCode = "LDC";
+                Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
+            }
+            else if (opCode == "JUMP"){
+                Pipe.pipes[pipeName].valueRegisters[0] = Int32.Parse(destination);
+            }
+            //Decode Happens here
+            else
+            {
+                r2 = getNextPartFromText(currentInstruction);
+                //Get value from register here (if possible)
+                if (r2.Contains('r') == true)
+                {
+                    Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
+                    Pipe.pipes[pipeName].dependencies.Add(r2);
+                }
+                else Pipe.pipes[pipeName].valueRegisters[0] = Int32.Parse(r2);
+                //Checks if there is more to decode
+                if (currentInstruction.Length > r2.Length + 1)
+                {
+                    currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
+                    string r3 = currentInstruction;
+                    //Get value from register here (if possible)
+                    if (r3.Contains('r') == true)
+                    {
+                        Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
+                        Pipe.pipes[pipeName].dependencies.Add(r3);
+                    }
+                    else Pipe.pipes[pipeName].valueRegisters[1] = Int32.Parse(r3);
+                }
             }
         }
         //Give opCode and destination

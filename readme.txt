@@ -4,7 +4,6 @@
 3)dotnet run to run the simulator
 
 Future work
-implemnt all RS types 
 branch predictors
 all types of branch prediction
 look for tree to make two state branch prediction bad and write about it

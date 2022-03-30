@@ -6,8 +6,8 @@ static class ReOrderBuffer
 {
     #region static public Vars
     static public List<command> contenseOfReOrderBuffer;
-    static public int LastExcutionOrder;
-    static private string HistoryInput,HistoryOutput;
+    static public int LastExcutionOrder, numberOfCommandsSentBack = 0;
+    static private string HistoryInput, HistoryOutput;
     #endregion
     //Called at start to make the RoB
     static public void makeReOrderBuffer()
@@ -84,14 +84,21 @@ static class ReOrderBuffer
             Memory.PutValueInRegister(Command.destination, Command.value1);
             DebugLogOutput($"Commited Load {Command.value1} to {Command.destination}");
         }
-        //BRANCH COMMANDS result:1 => take it || result:) => Dont take it
+        //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
         {
             if (Command.result == 1)
             {
                 ProgramCounter = Command.value1;
                 DebugLogOutput($"Commited new pc {ProgramCounter}");
+                ThrowingAwayCommandsAfterPCChange();
             }
+        }
+        else if (Command.opCode == "JUMP")
+        {
+            ProgramCounter = Command.value1;
+            DebugLogOutput($"Commited new jump {ProgramCounter}");
+            ThrowingAwayCommandsAfterPCChange();
         }
         //ARTHEMETRIC
         else if (Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" ||
@@ -100,6 +107,8 @@ static class ReOrderBuffer
             Memory.PutValueInRegister(Command.destination, Command.result);
             DebugLogOutput($"Commited ALU {Command.result} to {Command.destination}");
         }
+        //NOP
+        else if (Command.opCode == "NOP") DebugLogOutput($"Commited NOP");
         else Console.WriteLine($"COMMIT GOT UNRECOGNISED OPCODE {Command.opCode}");
         //Increase LastProgramCounterExcuted because we have committed again 
         LastExcutionOrder++;
@@ -118,7 +127,21 @@ static class ReOrderBuffer
     //Detecting a true dependency we send it back to be recalucated
     static void SendCommandBack(ref command Command)
     {
+        numberOfCommandsSentBack++;
         ExcutionUnits.AssignToExcutionUnit(Command);
+    }
+    static void ThrowingAwayCommandsAfterPCChange()
+    {
+        //When the PC is changed all the commands in the RoB become invalid
+        //We still need to move LastExcutionOrder along 
+        int commandsThrownAwayDueToPCChange = 0;
+        foreach (command comm in contenseOfReOrderBuffer)
+        {
+            if (comm.Equals(new command { })) break;
+            commandsThrownAwayDueToPCChange++;
+        }
+        LastExcutionOrder = LastExcutionOrder + commandsThrownAwayDueToPCChange;
+        contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
     }
     static void PopFromReOrderBuffer()
     {
@@ -146,6 +169,7 @@ static class ReOrderBuffer
         Console.WriteLine($"{HistoryInput}");
         Console.Write("--- ReOrder Buffer Output History");
         Console.WriteLine($"{HistoryOutput}");
+        Console.WriteLine($"Number of commands sent back {numberOfCommandsSentBack}");
     }
     #endregion
 }
