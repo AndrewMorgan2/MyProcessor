@@ -24,6 +24,7 @@ public class Pipe
         public int numCyclesBusyFor;
         public bool busy;
         public int issued;
+        public int PC;
     }
     static public pipeData[] pipes = new pipeData[NumberOfPipes];
     #endregion
@@ -95,6 +96,7 @@ public class Pipe
 
                     PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
                     Pipe.pipes[i].issued = ExcutionOrder;
+                    Pipe.pipes[i].PC = ProgramCounter;
                     ProgramCounter++;
                     ExcutionOrder++;
 

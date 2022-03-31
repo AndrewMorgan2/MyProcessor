@@ -76,8 +76,8 @@ public static class ExcutionUnits
             destination = Pipe.pipes[pipeName].Destination,
             value1 = Pipe.pipes[pipeName].valueRegisters[0],
             value2 = Pipe.pipes[pipeName].valueRegisters[1],
-            issuedOrder = Pipe.pipes[pipeName].issued,
             dependencies = Pipe.pipes[pipeName].dependencies,
+            PC = Pipe.pipes[pipeName].PC,
             result = 0
         };
         if (ReservationStationsUsed == true)
@@ -309,10 +309,10 @@ public static class ExcutionUnits
 
         //BRANCH COMMANDS
         else if (Command.opCode == "BEQ"){
-            BranchEqual(Command.value1, Command.value2, ref Command);
+            BranchEqual(Command.destination, Command.value1, Command.value2, ref Command);
         }
         else if (Command.opCode == "BNE"){
-            BranchNotEqual(Command.value1, Command.value2, ref Command);
+            BranchNotEqual(Command.destination, Command.value1, Command.value2, ref Command);
         }
         else if(Command.opCode == "JUMP") {
            ReOrderBuffer.addCommand(Command);
@@ -479,13 +479,13 @@ public static class ExcutionUnits
     }
     #endregion
     #region Branch processes
-    static void BranchEqual(int newPCPosition, int value, ref command commandPassed)
+    static void BranchEqual(string destination, int value1, int value2, ref command commandPassed)
     {
-        if (value == 0)
+        if (value1 == value2)
         {
             commandPassed.result = 1;
             ReOrderBuffer.addCommand(commandPassed);
-            DebugPrintWriteBack($"BranchEqual Write Back: changed PC to {value}");
+            DebugPrintWriteBack($"BranchEqual Write Back: change PC to {destination}");
         }
         else
         {
@@ -495,13 +495,13 @@ public static class ExcutionUnits
             DebugPrintWriteBack($"BranchEqual Write Back: didnt change PC");
         }
     }
-    static void BranchNotEqual(int newPCPosition, int value, ref command commandPassed)
+    static void BranchNotEqual(string destination, int value1, int value2, ref command commandPassed)
     {
-        if (value != 0)
+        if (value1 != value2)
         {
             commandPassed.result = 1;
             ReOrderBuffer.addCommand(commandPassed);
-            DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {value}");
+            DebugPrintWriteBack($"BranchNotEqual Write Back: changed PC to {destination}");
         }
         else
         {

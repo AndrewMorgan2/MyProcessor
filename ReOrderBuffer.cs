@@ -6,24 +6,33 @@ static class ReOrderBuffer
 {
     #region static public Vars
     static public List<command> contenseOfReOrderBuffer;
-    static public int LastExcutionOrder, numberOfCommandsSentBack = 0;
+    static public int numberOfCommandsSentBack, ShadowProgramCounter = 0;
     static private string HistoryInput, HistoryOutput;
     #endregion
     //Called at start to make the RoB
     static public void makeReOrderBuffer()
     {
         contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
-        LastExcutionOrder = 0;
+
         HistoryOutput = "";
         HistoryInput = "";
     }
     //We are going to check to see if we should commit or we should keep in the reorder buffer
     static public void addCommand(command newCommand)
     {
+        //No Duplicates (command has program counter)
+        foreach (command comm in contenseOfReOrderBuffer)
+        {
+            if (comm.Equals(new command { })) break;
+            else if (comm.PC == newCommand.PC) return;
+        }
+
         //DebugLog($"Recieved command {newCommand.opCode}");
         HistoryInput = HistoryInput + newCommand.opCode + " | ";
-        if (newCommand.issuedOrder == LastExcutionOrder)
+        //Shadow PC makes sure we didn't jump to another command 
+        if (ShadowProgramCounter == newCommand.PC)
         {
+            DebugLog($"{newCommand.opCode} straight in {newCommand.PC}");
             //Send to commit unit
             Commit(ref newCommand);
         }
@@ -33,7 +42,7 @@ static class ReOrderBuffer
             for (int i = 0; i < SizeOfReOrderBuffer; i++)
             {
                 //if empty place or issued earlier
-                if (contenseOfReOrderBuffer[i].Equals(new command { }) || newCommand.issuedOrder < contenseOfReOrderBuffer[i].issuedOrder)
+                if (contenseOfReOrderBuffer[i].Equals(new command { }) || newCommand.PC < contenseOfReOrderBuffer[i].PC)
                 {
                     //Check to see if the buffer is full
                     if (!contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1].Equals(new command { }))
@@ -67,7 +76,7 @@ static class ReOrderBuffer
                         }
                     }
 
-                    DebugLog($"Put command in to reorder buffer {newCommand.opCode} because Last EX is {LastExcutionOrder} and issued is {newCommand.issuedOrder}");
+                    DebugLog($"Put command in to reorder buffer {newCommand.opCode} because Last PC is {ShadowProgramCounter} and issued is {newCommand.PC}");
                     contenseOfReOrderBuffer.Insert(i, newCommand);
                     break;
                 }
@@ -87,41 +96,53 @@ static class ReOrderBuffer
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
         {
+            DebugLogOutput($"Commited {Command.opCode}");
             if (Command.result == 1)
             {
-                ProgramCounter = Command.value1;
+                //-1 Shadow counter because we add one to it at the end anyway
+                ProgramCounter = Int32.Parse(Command.destination);
+                ShadowProgramCounter = ProgramCounter - 1;
                 DebugLogOutput($"Commited new pc {ProgramCounter}");
-                ThrowingAwayCommandsAfterPCChange();
             }
         }
         else if (Command.opCode == "JUMP")
         {
-            ProgramCounter = Command.value1;
+            //-1 Shadow counter because we add one to it at the end anyway
+            ProgramCounter = Int32.Parse(Command.destination);
+            ShadowProgramCounter = ProgramCounter - 1;
             DebugLogOutput($"Commited new jump {ProgramCounter}");
-            ThrowingAwayCommandsAfterPCChange();
         }
         //ARTHEMETRIC
         else if (Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" ||
                 Command.opCode == "COMP" || Command.opCode == "MUL" || Command.opCode == "DIV")
         {
             Memory.PutValueInRegister(Command.destination, Command.result);
-            DebugLogOutput($"Commited ALU {Command.result} to {Command.destination}");
+            DebugLogOutput($"Commited ALU {Command.result} to {Command.destination} OPCODE: {Command.opCode}");
         }
         //NOP
-        else if (Command.opCode == "NOP") DebugLogOutput($"Commited NOP");
+        else if (Command.opCode == "NOP")
+        {
+            DebugLogOutput($"Commited NOP");
+            Console.WriteLine("STOP!");
+            runProcessor = false;
+        }
         else Console.WriteLine($"COMMIT GOT UNRECOGNISED OPCODE {Command.opCode}");
         //Increase LastProgramCounterExcuted because we have committed again 
-        LastExcutionOrder++;
+        ShadowProgramCounter++;
 
-        //Check to see if buffer is empty
-        if (contenseOfReOrderBuffer[0].Equals(new command { })) return;
         //Run to see if we can commit again!
-        if (contenseOfReOrderBuffer[0].issuedOrder == LastExcutionOrder)
+        for (int i = 0; i < SizeOfReOrderBuffer; i++)
         {
-            DebugLogOutput($"Command in reorder buffer is now commitable {contenseOfReOrderBuffer[0].opCode}");
-            command newCommand = contenseOfReOrderBuffer[0];
-            PopFromReOrderBuffer();
-            Commit(ref newCommand);
+            //Check to see if the rest of the buffer is empty
+            if (contenseOfReOrderBuffer[i].Equals(new command { })) return;
+            else if (contenseOfReOrderBuffer[i].PC == ShadowProgramCounter)
+            {
+                //DebugLogOutput($"Command in reorder buffer is now commitable {contenseOfReOrderBuffer[0].opCode}");
+                command newCommand = contenseOfReOrderBuffer[i];
+                PopFromReOrderBuffer();
+                Commit(ref newCommand);
+                return;
+            }
         }
     }
     //Detecting a true dependency we send it back to be recalucated
@@ -129,19 +150,6 @@ static class ReOrderBuffer
     {
         numberOfCommandsSentBack++;
         ExcutionUnits.AssignToExcutionUnit(Command);
-    }
-    static void ThrowingAwayCommandsAfterPCChange()
-    {
-        //When the PC is changed all the commands in the RoB become invalid
-        //We still need to move LastExcutionOrder along 
-        int commandsThrownAwayDueToPCChange = 0;
-        foreach (command comm in contenseOfReOrderBuffer)
-        {
-            if (comm.Equals(new command { })) break;
-            commandsThrownAwayDueToPCChange++;
-        }
-        LastExcutionOrder = LastExcutionOrder + commandsThrownAwayDueToPCChange;
-        contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
     }
     static void PopFromReOrderBuffer()
     {

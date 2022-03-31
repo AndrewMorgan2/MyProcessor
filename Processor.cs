@@ -10,12 +10,13 @@ namespace MyProcessor
         public List<string> dependencies;
         public int value1;
         public int value2;
-        public int issuedOrder;
+        public int PC;
         public int result;
     }
     public class Processor
     {
         #region Processor Stats
+        public static bool runProcessor = true;
         public static int NumberOfPipes = 3;
         public static int SizeOfCache = 10;
         public static int NumberOfCache = 3;
@@ -27,7 +28,7 @@ namespace MyProcessor
         public static bool UnifiedReservationStationsUsed = false;
         public static int SizeOfReOrderBuffer = 20;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 50;
+        public static int CycleLimit = 100;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -47,7 +48,7 @@ namespace MyProcessor
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
-        public static bool ReOrderBufferDebug = false;
+        public static bool ReOrderBufferDebug = true;
         public static bool ReOrderBufferDebugOutput = true;
         public static bool ReOrderBufferHistoryDebug = true;
         public static bool InfiniteLoopDetection = true;
@@ -90,7 +91,7 @@ namespace MyProcessor
             //Checks to see if pipes are clear
             //Checks to see if RS is clear 
             //Cheks to see if RoB is clear
-            while ((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer])))
+            while (((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer])) ))
             {               
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
@@ -122,6 +123,11 @@ namespace MyProcessor
                         Console.WriteLine("CYCLE LIMIT REACHED, INFINITE CYLCE DETECTED");
                         break;
                     }
+                }
+                //Stop detection
+                if(runProcessor == false){
+                    Console.WriteLine("CALLED STOP");
+                    break;
                 }
 
                 if (ReservationStationsUsed == true)
@@ -241,7 +247,7 @@ namespace MyProcessor
                 Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
             }
             Console.WriteLine("---------------- Key Info ----------------");
-            Console.WriteLine($"RoB at {ReOrderBuffer.LastExcutionOrder} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} / {Totalcycles} ");
+            Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} / {Totalcycles} ");
             #endregion
         }
 
