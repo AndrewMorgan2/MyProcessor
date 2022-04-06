@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using static MyProcessor.Processor;
 using command = MyProcessor.command;
 public static class ExcutionUnits
 {
     #region Data Structs and Excution Units
-    public struct excutionUnit{
+    public struct excutionUnit
+    {
         public int numberOfCommandsInTheStation;
         public int cyclesBusyFor;
         public excutionUnitType type;
@@ -13,7 +15,8 @@ public static class ExcutionUnits
         public bool busy;
         public string excutionHistory;
     }
-    public enum excutionUnitType{
+    public enum excutionUnitType
+    {
         ALU, Branch, LoadStore, Unified
     }
     public static excutionUnit[] ALUunits = new excutionUnit[ALUUnitNumber];
@@ -74,10 +77,11 @@ public static class ExcutionUnits
         {
             opCode = Pipe.pipes[pipeName].Opcode,
             destination = Pipe.pipes[pipeName].Destination,
-            value1 = Pipe.pipes[pipeName].valueRegisters[0],
-            value2 = Pipe.pipes[pipeName].valueRegisters[1],
-            dependencies = Pipe.pipes[pipeName].dependencies,
+            valueString1 = Pipe.pipes[pipeName].valueRegisters[0],
+            valueString2 = Pipe.pipes[pipeName].valueRegisters[1],
+            dependencies = new List<string>(),
             PC = Pipe.pipes[pipeName].PC,
+            cycleCalculatedIn = 0,
             result = 0
         };
         if (ReservationStationsUsed == true)
@@ -107,6 +111,7 @@ public static class ExcutionUnits
     //Give the command to the reservation station depending on the type of opcode recieved
     static public void AssignToExcutionUnit(command newCommand)
     {
+        //Get values
         excutionUnitType type;
         if (UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
         else if (newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
@@ -147,7 +152,7 @@ public static class ExcutionUnits
         }
         else
         {
-            posResStation = LocateCorrectReserveStation(numberOfUnits,  ref units, ref exUnitToBeGivenCommand);
+            posResStation = LocateCorrectReserveStation(numberOfUnits, ref units, ref exUnitToBeGivenCommand);
             //Put command in RS
             units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
             units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
@@ -283,6 +288,10 @@ public static class ExcutionUnits
     //Both functions below sort though the opCode and gives it to the correct Excution Unit
     static void ExcutionUnit(int name, bool resStations, ref command Command)
     {
+        GetValues(ref Command);
+        Command.cycleCalculatedIn = Totalcycles;
+        //Get Values from strings 
+
         //Here's where we decide what to actually do
         //REGISTER COMMANDS
         if (Command.opCode == "LD")
@@ -308,14 +317,17 @@ public static class ExcutionUnits
         }
 
         //BRANCH COMMANDS
-        else if (Command.opCode == "BEQ"){
+        else if (Command.opCode == "BEQ")
+        {
             BranchEqual(Command.destination, Command.value1, Command.value2, ref Command);
         }
-        else if (Command.opCode == "BNE"){
+        else if (Command.opCode == "BNE")
+        {
             BranchNotEqual(Command.destination, Command.value1, Command.value2, ref Command);
         }
-        else if(Command.opCode == "JUMP") {
-           ReOrderBuffer.addCommand(Command);
+        else if (Command.opCode == "JUMP")
+        {
+            ReOrderBuffer.addCommand(Command);
         }
 
         //ARTHEMETRIC
@@ -364,7 +376,7 @@ public static class ExcutionUnits
             }
         }
         //NOP
-        else if(Command.opCode == "NOP") ReOrderBuffer.addCommand(Command);
+        else if (Command.opCode == "NOP") ReOrderBuffer.addCommand(Command);
         else
         {
             Console.WriteLine($"EXCUTION UNIT RECIEVED UNREADABLE OPCODE {Command.opCode}");
@@ -372,6 +384,8 @@ public static class ExcutionUnits
     }
     static public void ExcutionAfterTime(int name, bool resStations, ref command Command, ref excutionUnit unit)
     {
+        GetValues(ref Command);
+        Command.cycleCalculatedIn = Totalcycles;
         if (resStations == true)
         {
             unit.busy = false;
@@ -394,6 +408,30 @@ public static class ExcutionUnits
             divEU(Command.destination, Command.value1, Command.value2, ref Command);
         }
         else Console.WriteLine($"DETECTED NONE LONG EXCUTION FUNCTION ENTERING EXCUTION AFTER TIME {Command.opCode} {name} {Totalcycles} {Pipe.pipes[name].busy}");
+    }
+    static void GetValues(ref command Command)
+    {
+        //Get value from register here
+        //We leave r2 as a register
+        if (Command.valueString1 != null && Command.valueString1 != "")
+        {
+            if (Command.valueString1.Contains('r') == true)
+            {
+                Command.value1 = Memory.GetValueFromRegister(Command.valueString1);
+                Command.dependencies.Add(Command.valueString1);
+            }
+            else Command.value1 = Int32.Parse(Command.valueString1);
+        }
+        if (Command.valueString2 != null && Command.valueString2 != "")
+        {
+            //Get value from register here (if possible)
+            if (Command.valueString2.Contains('r') == true)
+            {
+                Command.value2 = Memory.GetValueFromRegister(Command.valueString2);
+                Command.dependencies.Add(Command.valueString2);
+            }
+            else Command.value2 = Int32.Parse(Command.valueString2);
+        }
     }
     //These functions calculate results and send them to the reorder buffer
     #region ALU processes

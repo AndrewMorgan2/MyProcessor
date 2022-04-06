@@ -17,13 +17,11 @@ public class Pipe
         public string Opcode;
         //Where the operation will end up
         public string Destination;
-        public List<string> dependencies;
-        public int[] valueRegisters;
+        public string[] valueRegisters;
         public int instructionCycles;
         //Used to implement division/multiple/load/store taking more than one cycle
         public int numCyclesBusyFor;
         public bool busy;
-        public int issued;
         public int PC;
     }
     static public pipeData[] pipes = new pipeData[NumberOfPipes];
@@ -39,8 +37,7 @@ public class Pipe
             pipes[i].instructionCycles = 0;
             pipes[i].numCyclesBusyFor = 0;
             //We only have two registers per pipe
-            pipes[i].valueRegisters = new int[2];
-            pipes[i].dependencies = new List<string>();
+            pipes[i].valueRegisters = new string[2];
         }
     }
     //We add to pipe history and replace the current command the pipe has 
@@ -95,7 +92,6 @@ public class Pipe
                     if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
 
                     PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
-                    Pipe.pipes[i].issued = ExcutionOrder;
                     Pipe.pipes[i].PC = ProgramCounter;
                     ProgramCounter++;
                     ExcutionOrder++;
@@ -206,8 +202,7 @@ public class Pipe
         string opCode = getNextPartFromText(currentInstruction);
         string destination = "";
         //Set defult pipe values 
-        pipes[pipeName].valueRegisters = new int[2];
-        pipes[pipeName].dependencies = new List<string>();
+        pipes[pipeName].valueRegisters = new string[2];
 
         /*DECODE TENDS TO FAIL WHEN PROGRAMS ARE WRITTEN POORLY SO BEFORE 
         CHANGING THIS CODE MAKE SURE ALL COMMANDS ARE CORRECTLY FORMATTED */
@@ -224,45 +219,22 @@ public class Pipe
             {
                 r2 = getNextPartFromText(currentInstruction);
                 currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
-                string r3 = currentInstruction;
-                //Get value from register here
-                //We leave r2 as a register
-                int valueLoaded = 0;
-                if (r3.Contains('r') == true)
-                {
-                    valueLoaded = Memory.GetValueFromRegister(r3);
-                    Pipe.pipes[pipeName].dependencies.Add(r3);
-                }
-                else valueLoaded = Int32.Parse(r3);
+                Pipe.pipes[pipeName].valueRegisters[0] = currentInstruction;
                 opCode = "LDC";
-                Pipe.pipes[pipeName].valueRegisters[0] = valueLoaded;
             }
             else if (opCode == "JUMP"){
-                Pipe.pipes[pipeName].valueRegisters[0] = Int32.Parse(destination);
+                Pipe.pipes[pipeName].valueRegisters[0] = destination;
             }
             //Decode Happens here
             else
             {
                 r2 = getNextPartFromText(currentInstruction);
-                //Get value from register here (if possible)
-                if (r2.Contains('r') == true)
-                {
-                    Pipe.pipes[pipeName].valueRegisters[0] = Memory.GetValueFromRegister(r2);
-                    Pipe.pipes[pipeName].dependencies.Add(r2);
-                }
-                else Pipe.pipes[pipeName].valueRegisters[0] = Int32.Parse(r2);
-                //Checks if there is more to decode
+                Pipe.pipes[pipeName].valueRegisters[0] = r2;
                 if (currentInstruction.Length > r2.Length + 1)
                 {
                     currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
                     string r3 = currentInstruction;
-                    //Get value from register here (if possible)
-                    if (r3.Contains('r') == true)
-                    {
-                        Pipe.pipes[pipeName].valueRegisters[1] = Memory.GetValueFromRegister(r3);
-                        Pipe.pipes[pipeName].dependencies.Add(r3);
-                    }
-                    else Pipe.pipes[pipeName].valueRegisters[1] = Int32.Parse(r3);
+                    Pipe.pipes[pipeName].valueRegisters[1] = r3;
                 }
             }
         }

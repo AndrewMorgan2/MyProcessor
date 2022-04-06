@@ -8,10 +8,13 @@ namespace MyProcessor
         public string opCode;
         public string destination;
         public List<string> dependencies;
+        public string valueString1;
+        public string valueString2;
         public int value1;
         public int value2;
         public int PC;
         public int result;
+        public int cycleCalculatedIn;
     }
     public class Processor
     {

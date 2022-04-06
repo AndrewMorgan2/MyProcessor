@@ -6,14 +6,20 @@ static class ReOrderBuffer
 {
     #region static public Vars
     static public List<command> contenseOfReOrderBuffer;
+    static private List<dTracker> DependencyTracker;
     static public int numberOfCommandsSentBack, ShadowProgramCounter = 0;
     static private string HistoryInput, HistoryOutput;
+    struct dTracker
+    {
+        public string registerName;
+        public int cycleLastEditedIn;
+    }
     #endregion
     //Called at start to make the RoB
     static public void makeReOrderBuffer()
     {
         contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
-
+        DependencyTracker = new List<dTracker>();
         HistoryOutput = "";
         HistoryInput = "";
     }
@@ -86,6 +92,29 @@ static class ReOrderBuffer
     //We actually write back to memory (the end of the command)
     static public void Commit(ref command Command)
     {
+        if (DetectDependency(ref Command) == true)
+        {
+            SendCommandBack(ref Command);
+            Console.WriteLine($"Command: {Command.opCode} just got sent back");
+            return;
+        }
+
+        if (Command.destination.Contains("r") && DependencyTracker.Count != 0)
+        {
+            for (int i = 0; i < DependencyTracker.Count; i++)
+            {
+                if (DependencyTracker[i].registerName == Command.destination)
+                {
+                    if (DependencyTracker[i].cycleLastEditedIn < Command.cycleCalculatedIn) DependencyTracker.Remove(DependencyTracker[i]);
+                    else Console.WriteLine("DEPENDENCY TRACKER IS BEING MOVED DOWN IN CYCLES?");
+                }
+            }
+        }
+        DependencyTracker.Add(new dTracker
+        {
+            registerName = Command.destination,
+            cycleLastEditedIn = Command.cycleCalculatedIn
+        });
         HistoryOutput = HistoryOutput + Command.opCode + " | ";
         //REGISTER COMMANDS
         if (Command.opCode == "LDC")
@@ -144,6 +173,23 @@ static class ReOrderBuffer
                 return;
             }
         }
+    }
+    //Detect dependency returns true for dependency (spend back) and false for no dependency 
+    static bool DetectDependency(ref command Command)
+    {
+        foreach (dTracker dTrack in DependencyTracker)
+        {
+            if (Command.destination == dTrack.registerName)
+            {
+                //Console.WriteLine($"Actual check on {Command.opCode} with {Command.cycleCalculatedIn} comp to dTrack{dTrack.cycleLastEditedIn}");
+                if (Command.cycleCalculatedIn > dTrack.cycleLastEditedIn)
+                {
+                    return false;
+                }
+                else return true;
+            }
+        }
+        return false;
     }
     //Detecting a true dependency we send it back to be recalucated
     static void SendCommandBack(ref command Command)
