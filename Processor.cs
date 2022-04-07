@@ -88,7 +88,7 @@ namespace MyProcessor
                     instructionList = System.IO.File.ReadAllLines(@"./tests/testCase2.txt");
                 }
             }
-            else instructionList = System.IO.File.ReadAllLines(@"./instructionSet.txt");
+            else instructionList = System.IO.File.ReadAllLines(@"./assemblyCode.txt");
             System.Console.WriteLine($"Now lets run our processor with {instructionList.Length} commands");
 
             //Do we still have instruction to excute
@@ -301,6 +301,7 @@ namespace MyProcessor
             }
             return opcode;
         }
+        //Get Fibonacci number to check that processor give right answer
         static int fibonacci(int n)
         {
             // initialize first and second terms
