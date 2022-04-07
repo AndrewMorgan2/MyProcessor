@@ -498,7 +498,7 @@ public static class ExcutionUnits
         commandPassed.result = result;
         ReOrderBuffer.addCommand(commandPassed);
         //Write Back Debug
-        DebugPrintWriteBack($"Mul Write Back {result}");
+        DebugPrintWriteBack($"Mul Write Back {result} from {r2} and {r3}");
     }
     static void divEU(string r1, int r2, int r3, ref command commandPassed)
     {

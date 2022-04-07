@@ -43,17 +43,18 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
+        public static int testCaseToRun = 1;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
         public static bool WriteBackDebug = false;
-        public static bool MemoryReadOut = true;
+        public static bool MemoryReadOut = false;
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
-        public static bool ReOrderBufferDebug = true;
-        public static bool ReOrderBufferDebugOutput = true;
-        public static bool ReOrderBufferHistoryDebug = true;
+        public static bool ReOrderBufferDebug = false;
+        public static bool ReOrderBufferDebugOutput = false;
+        public static bool ReOrderBufferHistoryDebug = false;
         public static bool InfiniteLoopDetection = true;
         public static int waitingCycles, cacheMisses = 0;
         public static int[] cacheCalls = new int[NumberOfCache];
@@ -61,21 +62,30 @@ namespace MyProcessor
         static void Main()
         {
             Console.WriteLine("----------------  Starting   ----------------");
-            #region Instatiate pipes, memory, reorder buffer and reservation stations
+            if (RunTests == true) Console.WriteLine("---------------- Test Cases ----------------");
+            RunProcessorCode(testCaseToRun);
+        }
+        //Actually Running the Processor
+        static void RunProcessorCode(int testCaseToRun)
+        {
             //Instatiate Pipes and Memory
             Pipe.makePipes();
             Memory.makeMemory();
             ExcutionUnits.makeExcutionUnits();
             ReOrderBuffer.makeReOrderBuffer();
-            #endregion
 
-            #region Run Processor
             //Read in commands into a useable arrray
             string[] instructionList = new string[0];
             if (RunTests == true)
             {
-                Console.WriteLine("---------------- Test Cases ----------------");
-                instructionList = System.IO.File.ReadAllLines(@"./tests/testCase1.txt");
+                if (testCaseToRun == 1)
+                {
+                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase1.txt");
+                }
+                else if (testCaseToRun == 2)
+                {
+                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase2.txt");
+                }
             }
             else instructionList = System.IO.File.ReadAllLines(@"./instructionSet.txt");
             System.Console.WriteLine($"Now lets run our processor with {instructionList.Length} commands");
@@ -94,8 +104,8 @@ namespace MyProcessor
             //Checks to see if pipes are clear
             //Checks to see if RS is clear 
             //Cheks to see if RoB is clear
-            while (((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer])) ))
-            {               
+            while (((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer]))))
+            {
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
                 if (ReservationStationsUsed == true)
@@ -128,7 +138,8 @@ namespace MyProcessor
                     }
                 }
                 //Stop detection
-                if(runProcessor == false){
+                if (runProcessor == false)
+                {
                     Console.WriteLine("CALLED STOP");
                     break;
                 }
@@ -151,9 +162,10 @@ namespace MyProcessor
                     }
                 }
             }
-            #endregion
-
-            #region Printing Processor History
+            PrintProcessorHistory();
+        }
+        //Prints all the information about the excution used (controlled by public booleans at the top)
+        static void PrintProcessorHistory(){
             Console.WriteLine("----------------  Finished   ----------------");
             if (PipeDebug == true)
             {
@@ -236,7 +248,7 @@ namespace MyProcessor
                 for (int i = 0; i < LoadAndStoreUnitNumber; i++)
                 {
                     string debug;
-                    debug = $"- Reserve station Load Store[{i }] is {ExcutionUnits.LoadStoreunits[i].excutionHistory}";
+                    debug = $"- Reserve station Load Store[{i}] is {ExcutionUnits.LoadStoreunits[i].excutionHistory}";
                     Console.WriteLine(debug);
                 }
             }
@@ -247,13 +259,20 @@ namespace MyProcessor
             if (RunTests == true)
             {
                 Console.WriteLine("---------------- Test Results ----------------");
-                Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
+                if (testCaseToRun == 1)
+                {
+                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
+                    Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == Factorial(Memory.GetValueFromRegister("r3")))}");
+                }
+                else if (testCaseToRun == 2)
+                {
+                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
+                    Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == Factorial(Memory.GetValueFromRegister("r3")))}");
+                }
             }
             Console.WriteLine("---------------- Key Info ----------------");
             Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} / {Totalcycles} ");
-            #endregion
         }
-
         //Gets next part of the instruction eg (opcode/ register/ int/)
         public static string getNextPartFromText(string command)
         {
@@ -279,6 +298,14 @@ namespace MyProcessor
                 else return opcode;
             }
             return opcode;
+        }
+        //Get Factorial to check that processor give right answer
+        static int Factorial(int f)
+        {
+            if (f == 0)
+                return 1;
+            else
+                return f * Factorial(f - 1);
         }
     }
 }

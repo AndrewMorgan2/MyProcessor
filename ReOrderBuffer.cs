@@ -95,11 +95,10 @@ static class ReOrderBuffer
         if (DetectDependency(ref Command) == true)
         {
             SendCommandBack(ref Command);
-            Console.WriteLine($"Command: {Command.opCode} just got sent back");
             return;
         }
 
-        if (Command.destination.Contains("r") && DependencyTracker.Count != 0)
+        if (Command.destination.Contains("r") == true && DependencyTracker.Count != 0)
         {
             for (int i = 0; i < DependencyTracker.Count; i++)
             {
@@ -110,11 +109,14 @@ static class ReOrderBuffer
                 }
             }
         }
-        DependencyTracker.Add(new dTracker
+        if (Command.destination.Contains("r") == true)
         {
-            registerName = Command.destination,
-            cycleLastEditedIn = Command.cycleCalculatedIn
-        });
+            DependencyTracker.Add(new dTracker
+            {
+                registerName = Command.destination,
+                cycleLastEditedIn = Command.cycleCalculatedIn
+            });
+        }
         HistoryOutput = HistoryOutput + Command.opCode + " | ";
         //REGISTER COMMANDS
         if (Command.opCode == "LDC")
@@ -177,19 +179,28 @@ static class ReOrderBuffer
     //Detect dependency returns true for dependency (spend back) and false for no dependency 
     static bool DetectDependency(ref command Command)
     {
+        //int to count number of dependencies detected
+        int dependencyDetected = 0;
+        //If it has no dependencies then it's not gonna detect anything
+        if (Command.dependencies == new List<string>()) return false;
+        //Putting values into holders so that we dont cause index range exceptions
+        string dependencyOne = "";
+        if (Command.dependencies.Count > 0) dependencyOne = Command.dependencies[0];
+        string dependencyTwo = "";
+        if (Command.dependencies.Count > 1) dependencyTwo = Command.dependencies[1].Remove(0,1);
         foreach (dTracker dTrack in DependencyTracker)
         {
-            if (Command.destination == dTrack.registerName)
+            if (dTrack.registerName.Contains(dependencyOne) == true || dTrack.registerName.Contains(dependencyTwo) == true)
             {
                 //Console.WriteLine($"Actual check on {Command.opCode} with {Command.cycleCalculatedIn} comp to dTrack{dTrack.cycleLastEditedIn}");
-                if (Command.cycleCalculatedIn > dTrack.cycleLastEditedIn)
+                if (!(Command.cycleCalculatedIn > dTrack.cycleLastEditedIn))
                 {
-                    return false;
+                    dependencyDetected++;
                 }
-                else return true;
             }
         }
-        return false;
+        if (dependencyDetected == 0) return false;
+        else return true;
     }
     //Detecting a true dependency we send it back to be recalucated
     static void SendCommandBack(ref command Command)
