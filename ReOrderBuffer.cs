@@ -105,7 +105,11 @@ static class ReOrderBuffer
                 if (DependencyTracker[i].registerName == Command.destination)
                 {
                     if (DependencyTracker[i].cycleLastEditedIn < Command.cycleCalculatedIn) DependencyTracker.Remove(DependencyTracker[i]);
-                    else Console.WriteLine("DEPENDENCY TRACKER IS BEING MOVED DOWN IN CYCLES?");
+                    else
+                    {
+                        SendCommandBack(ref Command);
+                        return;
+                    }
                 }
             }
         }
@@ -187,7 +191,7 @@ static class ReOrderBuffer
         string dependencyOne = "";
         if (Command.dependencies.Count > 0) dependencyOne = Command.dependencies[0];
         string dependencyTwo = "";
-        if (Command.dependencies.Count > 1) dependencyTwo = Command.dependencies[1].Remove(0,1);
+        if (Command.dependencies.Count > 1) dependencyTwo = Command.dependencies[1].Remove(0, 1);
         foreach (dTracker dTrack in DependencyTracker)
         {
             if (dTrack.registerName.Contains(dependencyOne) == true || dTrack.registerName.Contains(dependencyTwo) == true)

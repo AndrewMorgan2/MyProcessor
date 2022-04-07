@@ -5,6 +5,7 @@ namespace MyProcessor
 {
     public struct command
     {
+        public string assemblyCode;
         public string opCode;
         public string destination;
         public List<string> dependencies;
@@ -26,12 +27,12 @@ namespace MyProcessor
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
         public static int LoadAndStoreUnitNumber = 1;
-        public static int SizeOfReservationStation = 3;
+        public static int SizeOfReservationStation = 5;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
         public static int SizeOfReOrderBuffer = 20;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 100;
+        public static int CycleLimit = 1000;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -43,7 +44,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 1;
+        public static int testCaseToRun = 2;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -165,7 +166,8 @@ namespace MyProcessor
             PrintProcessorHistory();
         }
         //Prints all the information about the excution used (controlled by public booleans at the top)
-        static void PrintProcessorHistory(){
+        static void PrintProcessorHistory()
+        {
             Console.WriteLine("----------------  Finished   ----------------");
             if (PipeDebug == true)
             {
@@ -261,13 +263,13 @@ namespace MyProcessor
                 Console.WriteLine("---------------- Test Results ----------------");
                 if (testCaseToRun == 1)
                 {
-                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
+                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} input:{Memory.GetValueFromRegister("r3")} loopCounterI:{Memory.GetValueFromRegister("r4")} For n!");
                     Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == Factorial(Memory.GetValueFromRegister("r3")))}");
                 }
                 else if (testCaseToRun == 2)
                 {
-                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} n:{Memory.GetValueFromRegister("r3")} a:{Memory.GetValueFromRegister("r4")} For n!");
-                    Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == Factorial(Memory.GetValueFromRegister("r3")))}");
+                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} input:{Memory.GetValueFromRegister("r4")} loopCounterI:{Memory.GetValueFromRegister("r3")} For n!");
+                    Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == fibonacci(Memory.GetValueFromRegister("r4")))}");
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");
@@ -298,6 +300,24 @@ namespace MyProcessor
                 else return opcode;
             }
             return opcode;
+        }
+        static int fibonacci(int n)
+        {
+            // initialize first and second terms
+            int t1 = 0, t2 = 1;
+
+            // initialize the next term (3rd term)
+            int nextTerm = t1 + t2;
+
+            // print 3rd to nth terms
+            for (int i = 3; i <= n; ++i)
+            {
+                t1 = t2;
+                t2 = nextTerm;
+                nextTerm = t1 + t2;
+            }
+
+            return nextTerm;
         }
         //Get Factorial to check that processor give right answer
         static int Factorial(int f)

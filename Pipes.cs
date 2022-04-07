@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using static MyProcessor.Processor;
+using command = MyProcessor.command;
+
 public class Pipe
 {
     #region Data Structs and pipes
     public struct pipeData
     {
         public int Name;
+        public string assemblyCode;
         //Used to debug at the end
         public string CommandHistory;
         //How we know what the pipe is doing
@@ -25,6 +28,7 @@ public class Pipe
         public int PC;
     }
     static public pipeData[] pipes = new pipeData[NumberOfPipes];
+    static public List<command> sentBackCommands = new List<command>();
     #endregion
     //Called at the start to make the pipes
     static public void makePipes()
@@ -91,9 +95,17 @@ public class Pipe
                     //Debug assignment
                     if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
 
-                    PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
-                    Pipe.pipes[i].PC = ProgramCounter;
-                    ProgramCounter++;
+                    //Check to see if any commands have been sent back before taking a new command
+                    if (sentBackCommands.Count == 0)
+                    {
+                        PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
+                        Pipe.pipes[i].assemblyCode = instructionList[ProgramCounter];
+                        Pipe.pipes[i].PC = ProgramCounter;
+                        ProgramCounter++;
+                    } else {
+                        PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {sentBackCommands[0].assemblyCode}"), pipes[i].Name);
+                        Pipe.pipes[i].PC = sentBackCommands[0].PC;
+                    }
                     ExcutionOrder++;
 
                     //What are all the other pipes up to 
@@ -107,7 +119,6 @@ public class Pipe
                             UpdatePipe(Pipe.pipes[b].Name);
                         }
                     }
-                    /*BREAK AHEAD NOT GOOD PRACTICE SOLVE IN FUTURE*/
                     //We don't want all empty pipes to be assigned the same task
                     break;
                 }
@@ -206,7 +217,7 @@ public class Pipe
 
         /*DECODE TENDS TO FAIL WHEN PROGRAMS ARE WRITTEN POORLY SO BEFORE 
         CHANGING THIS CODE MAKE SURE ALL COMMANDS ARE CORRECTLY FORMATTED */
-        
+
         //We dont want to keep decoding if we see NOP
         if (opCode != "NOP")
         {
@@ -222,7 +233,8 @@ public class Pipe
                 Pipe.pipes[pipeName].valueRegisters[0] = currentInstruction;
                 opCode = "LDC";
             }
-            else if (opCode == "JUMP"){
+            else if (opCode == "JUMP")
+            {
                 Pipe.pipes[pipeName].valueRegisters[0] = destination;
             }
             //Decode Happens here

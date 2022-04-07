@@ -75,6 +75,7 @@ public static class ExcutionUnits
         //Do excution 
         command newCommand = new command
         {
+            assemblyCode = Pipe.pipes[pipeName].assemblyCode,
             opCode = Pipe.pipes[pipeName].Opcode,
             destination = Pipe.pipes[pipeName].Destination,
             valueString1 = Pipe.pipes[pipeName].valueRegisters[0],
@@ -154,8 +155,16 @@ public static class ExcutionUnits
         {
             posResStation = LocateCorrectReserveStation(numberOfUnits, ref units, ref exUnitToBeGivenCommand);
             //Put command in RS
-            units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
-            units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
+            if (posResStation >= SizeOfReservationStation)
+            {
+                Console.WriteLine("RESERVATION STATION IS TOO FULL");
+                Pipe.sentBackCommands.Add(newCommand);
+            }
+            else
+            {
+                units[exUnitToBeGivenCommand].resStation[posResStation] = newCommand;
+                units[exUnitToBeGivenCommand].numberOfCommandsInTheStation++;
+            }
         }
     }
     static int LocateCorrectReserveStation(int unitNumber, ref excutionUnit[] units, ref int exUnitToBeGivenCommand)
