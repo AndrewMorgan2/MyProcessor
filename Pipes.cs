@@ -26,9 +26,12 @@ public class Pipe
         public int numCyclesBusyFor;
         public bool busy;
         public int PC;
+        public int specBranch;
     }
     static public pipeData[] pipes = new pipeData[NumberOfPipes];
     static public List<command> sentBackCommands = new List<command>();
+    static public List<string> speculativeInstructions = new List<string>();
+    static public int speculativeProgramCounter = 0;
     #endregion
     //Called at the start to make the pipes
     static public void makePipes()
@@ -92,17 +95,29 @@ public class Pipe
                 //Check to see if a pipe is empty or if it's excuting something fast
                 if (pipes[i].ActiveCommand == null || pipes[i].ActiveCommand == "Waiting" || (pipes[i].ActiveCommand == "Excute" && pipes[i].busy == false))
                 {
-                    //Debug assignment
-                    if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
-
+                    //Make this a none speculative branch 
+                    Pipe.pipes[i].specBranch = 0;
                     //Check to see if any commands have been sent back before taking a new command
                     if (sentBackCommands.Count == 0)
                     {
+                        //If we see a branch command then send it to the branch predictor aswell
+                        if (instructionList[ProgramCounter].Substring(0, 3) == "BEQ" || instructionList[ProgramCounter].Substring(0, 3) == "BNE")
+                        {
+                            BranchPrediction.SendBranchToPrediction(instructionList[ProgramCounter]);
+                        }
+                        //Debug assignment
+                        if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");
+
                         PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {instructionList[ProgramCounter]}"), pipes[i].Name);
                         Pipe.pipes[i].assemblyCode = instructionList[ProgramCounter];
                         Pipe.pipes[i].PC = ProgramCounter;
                         ProgramCounter++;
-                    } else {
+                    }
+                    else
+                    {
+                        //Debug assignment
+                        if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {sentBackCommands[0].assemblyCode}");
+
                         PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {sentBackCommands[0].assemblyCode}"), pipes[i].Name);
                         Pipe.pipes[i].PC = sentBackCommands[0].PC;
                     }
@@ -124,6 +139,36 @@ public class Pipe
                 }
                 //If we have full pipes then we just want them to update
                 else UpdatePipe(Pipe.pipes[i].Name);
+            }
+            //Check to see if we have speculative commands to fetch
+            else if (speculativeInstructions.Count < 0)
+            {
+                //Check to see if a pipe is empty or if it's excuting something fast
+                if (pipes[i].ActiveCommand == null || pipes[i].ActiveCommand == "Waiting" || (pipes[i].ActiveCommand == "Excute" && pipes[i].busy == false))
+                {
+                    //Make this a speculative branch 
+                    Pipe.pipes[i].specBranch = 1;
+                    //Debug assignment
+                    if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {speculativeInstructions[0]}");
+
+                    PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {speculativeInstructions[0]}"), pipes[i].Name);
+                    Pipe.pipes[i].assemblyCode = speculativeInstructions[0];
+                    Pipe.pipes[i].PC = speculativeProgramCounter;
+                    Pipe.pipes[i].specBranch = 1;
+                    speculativeProgramCounter++;
+                    speculativeInstructions.Remove(speculativeInstructions[0]);
+                    //What are all the other pipes up to 
+                    for (int b = 0; NumberOfPipes > b; b++)
+                    {
+                        //we know what pipes[i] is doing
+                        //We've also already updated all pipes that are smaller than the current i 
+                        if (pipes[b].Name != pipes[i].Name && i < b)
+                        {
+                            //Lets update the instructions of the pipes
+                            UpdatePipe(Pipe.pipes[b].Name);
+                        }
+                    }
+                }
             }
             else
             {
@@ -253,5 +298,21 @@ public class Pipe
         //Give opCode and destination
         Pipe.pipes[pipeName].Opcode = opCode;
         Pipe.pipes[pipeName].Destination = destination;
+    }
+    //Function to load speculative commands into the list of speculative commands
+    static public void LoadSpeculativeCommands(int ProgramCounterOfSpeculativeBranch)
+    {
+        speculativeProgramCounter = ProgramCounterOfSpeculativeBranch;
+        //Load all instructions between the new PC and the end
+        for (int i = ProgramCounterOfSpeculativeBranch; i < instructionList.Length; i++)
+        {
+            if ("BEQ" == getNextPartFromText(instructionList[i])) return;
+            if ("BNE" == getNextPartFromText(instructionList[i])) return;
+            if (speculativeInstructions.Contains(instructionList[i]) == false)
+            {
+                speculativeInstructions.Add(instructionList[i]);
+                BranchPrediction.BranchDebug($"Added {instructionList[i]} to spec instructions in pipes");
+            }
+        }
     }
 }

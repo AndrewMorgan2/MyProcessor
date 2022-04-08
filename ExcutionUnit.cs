@@ -83,6 +83,7 @@ public static class ExcutionUnits
             dependencies = new List<string>(),
             PC = Pipe.pipes[pipeName].PC,
             cycleCalculatedIn = 0,
+            specBranch = Pipe.pipes[pipeName].specBranch,
             result = 0
         };
         if (ReservationStationsUsed == true)

@@ -5,7 +5,7 @@ using command = MyProcessor.command;
 static class ReOrderBuffer
 {
     #region static public Vars
-    static public List<command> contenseOfReOrderBuffer;
+    static public List<command> contenseOfReOrderBuffer, speculativeCommands;
     static private List<dTracker> DependencyTracker;
     static public int numberOfCommandsSentBack, ShadowProgramCounter = 0;
     static private string HistoryInput, HistoryOutput;
@@ -20,17 +20,31 @@ static class ReOrderBuffer
     {
         contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
         DependencyTracker = new List<dTracker>();
+        speculativeCommands = new List<command>();
         HistoryOutput = "";
         HistoryInput = "";
     }
     //We are going to check to see if we should commit or we should keep in the reorder buffer
     static public void addCommand(command newCommand)
     {
+        //If speculative command then we add to a list
+        //0 means it's not speculation
+        if (newCommand.specBranch != 0)
+        {
+            foreach (command cmd in speculativeCommands)
+            {
+                if (cmd.opCode == newCommand.opCode && cmd.destination == newCommand.destination) return;
+            }
+            speculativeCommands.Add(newCommand);
+            BranchPrediction.BranchDebug($"Added {newCommand.opCode} to spec branch in RoB");
+            return;
+        }
+
         //No Duplicates (command has program counter)
         foreach (command comm in contenseOfReOrderBuffer)
         {
             if (comm.Equals(new command { })) break;
-            else if (comm.PC == newCommand.PC) return;
+            else if (comm.opCode == newCommand.opCode && comm.destination == newCommand.destination) return;
         }
 
         //DebugLog($"Recieved command {newCommand.opCode}");
@@ -134,6 +148,21 @@ static class ReOrderBuffer
             DebugLogOutput($"Commited {Command.opCode}");
             if (Command.result == 1)
             {
+                //Check to see if this is the branch predicted
+                if (speculativeCommands[0].assemblyCode == Command.assemblyCode)
+                {
+                    BranchPrediction.BranchDebug($"Speculative branch is being check against the real excution");
+                    if (speculativeCommands[0].result == Command.result)
+                    {
+                        BranchPrediction.BranchDebug($"Branch Correct and being committed");
+                        AddCommandsToRoBWhenSpecBranchIsCorrect();
+                    }
+                    else
+                    {
+                        BranchPrediction.BranchDebug($"Branch InCorrect and being destroyed");
+                    }
+                    CleanUpSpeculativeCommands();
+                }
                 //-1 Shadow counter because we add one to it at the end anyway
                 ProgramCounter = Int32.Parse(Command.destination);
                 ShadowProgramCounter = ProgramCounter - 1;
@@ -221,6 +250,26 @@ static class ReOrderBuffer
             contenseOfReOrderBuffer[i] = contenseOfReOrderBuffer[i + 1];
         }
         contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1] = new command { };
+    }
+    //called once speculative branch is checked
+    //Removes all commands until it finds a branch command
+    static void CleanUpSpeculativeCommands(){
+        foreach(command cmd in speculativeCommands){
+            if(cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
+            speculativeCommands.Remove(cmd);
+        }
+    }
+    //Called when speculative branch is correct so we need to add the commands to the RoB
+    static void AddCommandsToRoBWhenSpecBranchIsCorrect(){
+        //We know that the specBranch branch command is the same as the real one so we delete it!
+        speculativeCommands.RemoveAt(0);
+        foreach(command cmd in speculativeCommands){
+            if(cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
+            BranchPrediction.BranchDebug($"Command {cmd.opCode} is being added to RoB by branch predictor");
+            command acceptedSpecBranch = cmd;
+            acceptedSpecBranch.specBranch = 0;
+            addCommand(acceptedSpecBranch);
+        }
     }
     #region Debugging
     static private void DebugLog(string debugPrint)

@@ -16,6 +16,7 @@ namespace MyProcessor
         public int PC;
         public int result;
         public int cycleCalculatedIn;
+        public int specBranch;
     }
     public class Processor
     {
@@ -53,6 +54,7 @@ namespace MyProcessor
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
+        public static bool BranchPredictorDebug = true;
         public static bool ReOrderBufferDebug = false;
         public static bool ReOrderBufferDebugOutput = false;
         public static bool ReOrderBufferHistoryDebug = false;
@@ -60,6 +62,7 @@ namespace MyProcessor
         public static int waitingCycles, cacheMisses = 0;
         public static int[] cacheCalls = new int[NumberOfCache];
         #endregion
+        public static string[] instructionList;
         static void Main()
         {
             Console.WriteLine("----------------  Starting   ----------------");
@@ -76,7 +79,7 @@ namespace MyProcessor
             ReOrderBuffer.makeReOrderBuffer();
 
             //Read in commands into a useable arrray
-            string[] instructionList = new string[0];
+            instructionList = new string[0];
             if (RunTests == true)
             {
                 if (testCaseToRun == 1)
@@ -268,7 +271,7 @@ namespace MyProcessor
                 }
                 else if (testCaseToRun == 2)
                 {
-                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} input:{Memory.GetValueFromRegister("r4")} loopCounterI:{Memory.GetValueFromRegister("r3")} For n!");
+                    Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} input:{Memory.GetValueFromRegister("r4")} loopCounterI:{Memory.GetValueFromRegister("r3")} For {Memory.GetValueFromRegister("r4")}th Fibonacci");
                     Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == fibonacci(Memory.GetValueFromRegister("r4")))}");
                 }
             }
