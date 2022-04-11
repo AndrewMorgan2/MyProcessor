@@ -116,7 +116,7 @@ public static class ExcutionUnits
         //Get values
         excutionUnitType type;
         if (UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
-        else if (newCommand.opCode == "LDC") type = excutionUnitType.LoadStore;
+        else if (newCommand.opCode == "LDC" || newCommand.opCode == "STR") type = excutionUnitType.LoadStore;
         else if (newCommand.opCode == "BEQ" || newCommand.opCode == "BNE" || newCommand.opCode == "JUMP") type = excutionUnitType.Branch;
         else type = excutionUnitType.ALU;
         //Just determines where to put the command
@@ -310,7 +310,7 @@ public static class ExcutionUnits
             //Sorted to ldc at decode so we shouldn't ever run this 
             Console.WriteLine("ERROR ----- We have command LD where we should have LDC, maybe decode failed?");
         }
-        else if (Command.opCode == "LDC")
+        else if (Command.opCode == "LDC" || Command.opCode == "STR")
         {
             //Load Register directly
             if (resStations == true)
@@ -409,6 +409,11 @@ public static class ExcutionUnits
             //Load Register directly
             loadDirectly(Command.destination, Command.value1, ref Command);
         }
+        else if (Command.opCode == "STR")
+        {
+            //Load Register directly
+            store(Command.destination, Command.value1, ref Command);
+        }
         else if (Command.opCode == "MUL")
         {
             mulEU(Command.destination, Command.value1, Command.value2, ref Command);
@@ -433,7 +438,7 @@ public static class ExcutionUnits
         else Command.value1 = Int32.Parse(Command.valueString1);
 
         //Check to see if they're an opCode with another value
-        if(Command.opCode == "LDC") return;
+        if(Command.opCode == "LDC" || Command.opCode == "STR") return;
         //Get value from register here (if possible)
         if (Command.valueString2.Contains('r') == true)
         {
@@ -568,6 +573,12 @@ public static class ExcutionUnits
         ReOrderBuffer.addCommand(commandPassed);
         //Write Back Debug
         DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
+    }
+    static void store(string r1, int r2, ref command commandPassed){
+        //Store r2's value in register correlated to the number r2 
+        ReOrderBuffer.addCommand(commandPassed);
+        //Write Back Debug
+        DebugPrintWriteBack($"Store Write Back: loaded {r2} into regsiter {r1}");
     }
     #endregion
 

@@ -23,18 +23,18 @@ namespace MyProcessor
         #region Processor Stats
         public static bool runProcessor = true;
         public static int NumberOfPipes = 3;
-        public static int SizeOfCache = 10;
+        public static int SizeOfCache = 20;
         public static int NumberOfCache = 3;
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
         public static int LoadAndStoreUnitNumber = 1;
-        public static int SizeOfReservationStation = 5;
+        public static int SizeOfReservationStation = 50;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
         public static bool BranchPredictionUsed = true;
         public static int SizeOfReOrderBuffer = 20;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 1000;
+        public static int CycleLimit = 100000;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -46,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 3;
+        public static int testCaseToRun = 4;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -55,9 +55,9 @@ namespace MyProcessor
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
-        public static bool BranchPredictorDebug = true;
+        public static bool BranchPredictorDebug = false;
         public static bool ReOrderBufferDebug = false;
-        public static bool ReOrderBufferDebugOutput = false;
+        public static bool ReOrderBufferDebugOutput = true;
         public static bool ReOrderBufferHistoryDebug = false;
         public static bool InfiniteLoopDetection = true;
         public static int waitingCycles, cacheMisses = 0;
@@ -91,9 +91,13 @@ namespace MyProcessor
                 {
                     instructionList = System.IO.File.ReadAllLines(@"./tests/testCase2.txt");
                 }
-                 else if (testCaseToRun == 3)
+                else if (testCaseToRun == 3)
                 {
                     instructionList = System.IO.File.ReadAllLines(@"./tests/testCase3.txt");
+                }
+                else if (testCaseToRun == 4)
+                {
+                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase4.txt");
                 }
             }
             else instructionList = System.IO.File.ReadAllLines(@"./assemblyCode.txt");
@@ -283,6 +287,12 @@ namespace MyProcessor
                 {
                     Console.WriteLine($"loopCounterI:{Memory.GetValueFromRegister("r5")} a:{Memory.GetValueFromRegister("r0")}, b:{Memory.GetValueFromRegister("r1")}, c:{Memory.GetValueFromRegister("r2")}, d:{Memory.GetValueFromRegister("r3")},  e:{Memory.GetValueFromRegister("r4")}");
                     Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r0") == 52} | {Memory.GetValueFromRegister("r1") == 54} | {Memory.GetValueFromRegister("r2") == 55} | {Memory.GetValueFromRegister("r3") == 58} | {Memory.GetValueFromRegister("r4") == 59}");
+                }
+                else if (testCaseToRun == 4)
+                {
+                    string Output = "";
+                    for(int i = 0; i < 20; i++) Output = Output + ", " +  Memory.GetValueFromRegister($"r{i}");
+                    Console.WriteLine($"Test Result: {Output}");
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");

@@ -41,7 +41,30 @@ public class Memory
         int registerIndex = RemoveR(registerIndexString);
         //Find which cache do we need to hit
         int cacheNumber = 0;
-        if (registerIndex > SizeOfCache)
+        if (registerIndex > SizeOfCache - 1)
+        {
+            registerIndex = registerIndex - SizeOfCache;
+            cacheNumber++;
+        }
+        //Check if we have that register
+        if (cacheNumber > NumberOfCache)
+        {
+            Console.WriteLine("Error ----- Index sent that doesn't exist in the register file");
+            //Cache Miss
+            cacheMisses++;
+        }
+        //Update benchmark parameters
+        cacheCalls[cacheNumber]++;
+
+        //Actually set values in the memory 
+        Regfile.caches[cacheNumber].memory[registerIndex] = value;
+        //Console.WriteLine($"{Regfile.caches[cacheNumber].memory[registerIndex]} is the value in in cache:{cacheNumber}, register:{registerIndex}");
+    }
+    static public void PutValueInRegisterByInt(int registerIndex, int value)
+    {
+        //Find which cache do we need to hit
+        int cacheNumber = 0;
+        if (registerIndex > SizeOfCache - 1)
         {
             registerIndex = registerIndex - SizeOfCache;
             cacheNumber++;
@@ -73,10 +96,17 @@ public class Memory
         int registerIndex = RemoveR(registerIndexString);
         //Find which cache do we need to hit
         int cacheNumber = 0;
-        if (registerIndex > SizeOfCache)
+        if (registerIndex > SizeOfCache - 1)
         {
             registerIndex = registerIndex - SizeOfCache;
             cacheNumber++;
+        }
+        //Check if we have that register
+        if (cacheNumber > NumberOfCache)
+        {
+            Console.WriteLine("Error ----- Index sent that doesn't exist in the register file");
+            //Cache Miss
+            cacheMisses++;
         }
         return Regfile.caches[cacheNumber].memory[registerIndex];
     }
