@@ -31,6 +31,7 @@ namespace MyProcessor
         public static int SizeOfReservationStation = 5;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
+        public static bool BranchPredictionUsed = true;
         public static int SizeOfReOrderBuffer = 20;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
         public static int CycleLimit = 1000;
@@ -45,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 2;
+        public static int testCaseToRun = 3;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -89,6 +90,10 @@ namespace MyProcessor
                 else if (testCaseToRun == 2)
                 {
                     instructionList = System.IO.File.ReadAllLines(@"./tests/testCase2.txt");
+                }
+                 else if (testCaseToRun == 3)
+                {
+                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase3.txt");
                 }
             }
             else instructionList = System.IO.File.ReadAllLines(@"./assemblyCode.txt");
@@ -273,6 +278,11 @@ namespace MyProcessor
                 {
                     Console.WriteLine($"result:{Memory.GetValueFromRegister("r2")} input:{Memory.GetValueFromRegister("r4")} loopCounterI:{Memory.GetValueFromRegister("r3")} For {Memory.GetValueFromRegister("r4")}th Fibonacci");
                     Console.WriteLine($"Test Result: {(Memory.GetValueFromRegister("r2") == fibonacci(Memory.GetValueFromRegister("r4")))}");
+                }
+                else if (testCaseToRun == 3)
+                {
+                    Console.WriteLine($"loopCounterI:{Memory.GetValueFromRegister("r5")} a:{Memory.GetValueFromRegister("r0")}, b:{Memory.GetValueFromRegister("r1")}, c:{Memory.GetValueFromRegister("r2")}, d:{Memory.GetValueFromRegister("r3")},  e:{Memory.GetValueFromRegister("r4")}");
+                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r0") == 52} | {Memory.GetValueFromRegister("r1") == 54} | {Memory.GetValueFromRegister("r2") == 55} | {Memory.GetValueFromRegister("r3") == 58} | {Memory.GetValueFromRegister("r4") == 59}");
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");

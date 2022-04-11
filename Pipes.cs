@@ -100,10 +100,14 @@ public class Pipe
                     //Check to see if any commands have been sent back before taking a new command
                     if (sentBackCommands.Count == 0)
                     {
-                        //If we see a branch command then send it to the branch predictor aswell
-                        if (instructionList[ProgramCounter].Substring(0, 3) == "BEQ" || instructionList[ProgramCounter].Substring(0, 3) == "BNE")
+                        //Check to see if we are using the branch prediction
+                        if (BranchPredictionUsed == true)
                         {
-                            BranchPrediction.SendBranchToPrediction(instructionList[ProgramCounter]);
+                            //If we see a branch command then send it to the branch predictor aswell
+                            if (instructionList[ProgramCounter].Substring(0, 3) == "BEQ" || instructionList[ProgramCounter].Substring(0, 3) == "BNE")
+                            {
+                                BranchPrediction.SendBranchToPrediction(instructionList[ProgramCounter]);
+                            }
                         }
                         //Debug assignment
                         if (PipeAssignmentDebug == true) Console.WriteLine($"Pipe {pipes[i].Name} has been given: {instructionList[ProgramCounter]}");

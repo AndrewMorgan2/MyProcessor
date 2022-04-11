@@ -421,27 +421,27 @@ public static class ExcutionUnits
     }
     static void GetValues(ref command Command)
     {
+        if (Command.opCode == "NOP" || Command.opCode == "JUMP") return;
         //Get value from register here
         //We leave r2 as a register
-        if (Command.valueString1 != null && Command.valueString1 != "")
+
+        if (Command.valueString1.Contains('r') == true)
         {
-            if (Command.valueString1.Contains('r') == true)
-            {
-                Command.value1 = Memory.GetValueFromRegister(Command.valueString1);
-                Command.dependencies.Add(Command.valueString1);
-            }
-            else Command.value1 = Int32.Parse(Command.valueString1);
+            Command.value1 = Memory.GetValueFromRegister(Command.valueString1);
+            Command.dependencies.Add(Command.valueString1);
         }
-        if (Command.valueString2 != null && Command.valueString2 != "")
+        else Command.value1 = Int32.Parse(Command.valueString1);
+
+        //Check to see if they're an opCode with another value
+        if(Command.opCode == "LDC") return;
+        //Get value from register here (if possible)
+        if (Command.valueString2.Contains('r') == true)
         {
-            //Get value from register here (if possible)
-            if (Command.valueString2.Contains('r') == true)
-            {
-                Command.value2 = Memory.GetValueFromRegister(Command.valueString2);
-                Command.dependencies.Add(Command.valueString2);
-            }
-            else Command.value2 = Int32.Parse(Command.valueString2);
+            Command.value2 = Memory.GetValueFromRegister(Command.valueString2);
+            Command.dependencies.Add(Command.valueString2);
         }
+        else Command.value2 = Int32.Parse(Command.valueString2);
+
     }
     //These functions calculate results and send them to the reorder buffer
     #region ALU processes

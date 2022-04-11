@@ -12,7 +12,7 @@ The processor I am simulating has a very limited instruction set.
 | LDC | store, r1 | Load r1 into store
 | LD | store, r1, offset | Load r1 with offset store 
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
-| BNE | destination, r1 | if r1 != r2 move PC to destination
+| BNE | destination, r1, r2 | if r1 != r2 move PC to destination
 | JUMP | destination | Move PC to destination
 | NOP | Ends Process | Ends process 
 ## Code Layout 
@@ -26,7 +26,9 @@ Has simple functions to put/read data from an array (simulated caches).
 ### Excution Unit
 This conducts all the excution along with changing the data struct from pipeData to command. Keeps track of reservation stations and sends commands to the reorder buffer along with the cycle they were completed. This data is used in the reorder buffer to track dependencies.
 ### ReOrder Buffer
-The reorder buffer commits commands to memory while checking to see if there are dependencies between them. If a dependency is caught then the command is sent back. 
+The reorder buffer commits commands to memory while checking to see if there are dependencies between them. If a dependency is caught then the command is sent back.
+### Branch Prediction
+The branch predictor is sent any branch commands, giving them an speculative result and pushing them to the RoB. We also tell pipes where we want to start a speculative branch, this means the pipe will decode and excute the speculative branch (these commands are a lower priority then commands that aren't speculative). The branch predictor has an int value that decides waht type of predictor it will be, it has types fixed (take and not take) dynamic (backward and forward) along with one and two state predictors.  
 ## Future Work
 branch predictors
 all types of branch prediction

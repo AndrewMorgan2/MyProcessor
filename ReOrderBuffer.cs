@@ -148,26 +148,31 @@ static class ReOrderBuffer
             DebugLogOutput($"Commited {Command.opCode}");
             if (Command.result == 1)
             {
-                //Check to see if this is the branch predicted
-                if (speculativeCommands[0].assemblyCode == Command.assemblyCode)
+                BranchPrediction.PredictionResult(true);
+                if (speculativeCommands.Count != 0)
                 {
-                    BranchPrediction.BranchDebug($"Speculative branch is being check against the real excution");
-                    if (speculativeCommands[0].result == Command.result)
+                    //Check to see if this is the branch predicted
+                    if (speculativeCommands[0].assemblyCode == Command.assemblyCode)
                     {
-                        BranchPrediction.BranchDebug($"Branch Correct and being committed");
-                        AddCommandsToRoBWhenSpecBranchIsCorrect();
+                        BranchPrediction.BranchDebug($"Speculative branch is being check against the real excution");
+                        if (speculativeCommands[0].result == Command.result)
+                        {
+                            BranchPrediction.BranchDebug($"Branch Correct and being committed");
+                            AddCommandsToRoBWhenSpecBranchIsCorrect();
+                        }
+                        else
+                        {
+                            BranchPrediction.BranchDebug($"Branch InCorrect and being destroyed");
+                        }
+                        CleanUpSpeculativeCommands();
                     }
-                    else
-                    {
-                        BranchPrediction.BranchDebug($"Branch InCorrect and being destroyed");
-                    }
-                    CleanUpSpeculativeCommands();
                 }
                 //-1 Shadow counter because we add one to it at the end anyway
                 ProgramCounter = Int32.Parse(Command.destination);
                 ShadowProgramCounter = ProgramCounter - 1;
                 DebugLogOutput($"Commited new pc {ProgramCounter}");
             }
+            else BranchPrediction.PredictionResult(false);
         }
         else if (Command.opCode == "JUMP")
         {
@@ -253,18 +258,22 @@ static class ReOrderBuffer
     }
     //called once speculative branch is checked
     //Removes all commands until it finds a branch command
-    static void CleanUpSpeculativeCommands(){
-        foreach(command cmd in speculativeCommands){
-            if(cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
+    static void CleanUpSpeculativeCommands()
+    {
+        foreach (command cmd in speculativeCommands)
+        {
+            if (cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
             speculativeCommands.Remove(cmd);
         }
     }
     //Called when speculative branch is correct so we need to add the commands to the RoB
-    static void AddCommandsToRoBWhenSpecBranchIsCorrect(){
+    static void AddCommandsToRoBWhenSpecBranchIsCorrect()
+    {
         //We know that the specBranch branch command is the same as the real one so we delete it!
         speculativeCommands.RemoveAt(0);
-        foreach(command cmd in speculativeCommands){
-            if(cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
+        foreach (command cmd in speculativeCommands)
+        {
+            if (cmd.opCode == "BEQ" || cmd.opCode == "BNE") return;
             BranchPrediction.BranchDebug($"Command {cmd.opCode} is being added to RoB by branch predictor");
             command acceptedSpecBranch = cmd;
             acceptedSpecBranch.specBranch = 0;
