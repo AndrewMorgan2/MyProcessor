@@ -11,7 +11,7 @@ The processor I am simulating has a very limited instruction set.
 | COMP | store, r1, r2 | Stores -1 if <, 0 if ==, 1 if >
 | LDC | store, r1 | Load r1 into store
 | LD | store, r1, offset | Load r1 with offset store 
-| STR | storeNumber, r1 | Stores r1 in store (register correlated to that value)
+| STR | storeNumber, r1 | Stores r1 in store (store via index from register)
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
 | BNE | destination, r1, r2 | if r1 != r2 move PC to destination
 | JUMP | destination | Move PC to destination
@@ -31,10 +31,10 @@ The reorder buffer commits commands to memory while checking to see if there are
 ### Branch Prediction
 The branch predictor is sent any branch commands, giving them an speculative result and pushing them to the RoB. We also tell pipes where we want to start a speculative branch, this means the pipe will decode and excute the speculative branch (these commands are a lower priority then commands that aren't speculative). The branch predictor has an int value that decides waht type of predictor it will be, it has types fixed (take and not take) dynamic (backward and forward) along with one and two state predictors.  
 ## Future Work
-branch predictors
-all types of branch prediction
 look for tree to make two state branch prediction bad and write about it
 ## Test Cases
 1. Work out Factorial of x 
 2. Work out x in the fibonacci sequence
-3. Binary search (to be added)
+3. Do x number of simple additions 
+4. Bubble sort (to be added)
+5. Binary search (to be added)

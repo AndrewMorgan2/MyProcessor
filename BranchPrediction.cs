@@ -8,7 +8,7 @@ static class BranchPrediction
     //Type 0 (fixed: take)
     //Type 1 (fixed: dont take)
     //Type 2 (static: if forward take)
-    //Type 3 (stastic: if backward take)
+    //Type 3 (static: if backward take)
     //Type 4 (one state)
     //Type 5 (two state)
     static int typeOfBranchPrediction = 1;

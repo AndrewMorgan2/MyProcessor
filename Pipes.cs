@@ -301,7 +301,8 @@ public class Pipe
         }
         //Give opCode and destination
         Pipe.pipes[pipeName].Opcode = opCode;
-        Pipe.pipes[pipeName].Destination = destination;
+        if (opCode == "STR") Pipe.pipes[pipeName].valueRegisters[1] = destination;
+        else Pipe.pipes[pipeName].Destination = destination;
     }
     //Function to load speculative commands into the list of speculative commands
     static public void LoadSpeculativeCommands(int ProgramCounterOfSpeculativeBranch)

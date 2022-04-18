@@ -34,7 +34,7 @@ namespace MyProcessor
         public static bool BranchPredictionUsed = true;
         public static int SizeOfReOrderBuffer = 20;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 100000;
+        public static int CycleLimit = 10000;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -46,19 +46,19 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 4;
-        public static bool PipeDebug = false;
+        public static int testCaseToRun = 3;
+        public static bool PipeDebug = true;
         public static bool MemoryDebug = false;
-        public static bool ExcutionUnitDebug = false;
+        public static bool ExcutionUnitDebug = true;
         public static bool WriteBackDebug = false;
-        public static bool MemoryReadOut = false;
+        public static bool MemoryReadOut = true;
         public static bool ReserveStationReadOut = false;
-        public static bool ReserveStationHistory = false;
+        public static bool ReserveStationHistory = true;
         public static bool PipeAssignmentDebug = false;
         public static bool BranchPredictorDebug = false;
-        public static bool ReOrderBufferDebug = false;
+        public static bool ReOrderBufferDebug = true;
         public static bool ReOrderBufferDebugOutput = true;
-        public static bool ReOrderBufferHistoryDebug = false;
+        public static bool ReOrderBufferHistoryDebug = true;
         public static bool InfiniteLoopDetection = true;
         public static int waitingCycles, cacheMisses = 0;
         public static int[] cacheCalls = new int[NumberOfCache];
@@ -290,7 +290,7 @@ namespace MyProcessor
                 }
                 else if (testCaseToRun == 4)
                 {
-                    string Output = "";
+                    string Output = "Output";
                     for(int i = 0; i < 20; i++) Output = Output + ", " +  Memory.GetValueFromRegister($"r{i}");
                     Console.WriteLine($"Test Result: {Output}");
                 }

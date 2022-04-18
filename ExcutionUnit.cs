@@ -412,7 +412,7 @@ public static class ExcutionUnits
         else if (Command.opCode == "STR")
         {
             //Load Register directly
-            store(Command.destination, Command.value1, ref Command);
+            store(Command.value2, Command.value1, ref Command);
         }
         else if (Command.opCode == "MUL")
         {
@@ -574,7 +574,7 @@ public static class ExcutionUnits
         //Write Back Debug
         DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
     }
-    static void store(string r1, int r2, ref command commandPassed){
+    static void store(int r1, int r2, ref command commandPassed){
         //Store r2's value in register correlated to the number r2 
         ReOrderBuffer.addCommand(commandPassed);
         //Write Back Debug

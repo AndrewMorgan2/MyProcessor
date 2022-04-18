@@ -1,10 +1,19 @@
-ADDI r1 r2 15
-ADDI r2 r3 3
-ADD r3 r2 r1
-SUB r4 r1 r3
-LDC r15 r1
-LD r16 r1 6
-COMP r17 1 10
-BEQ 10 r17
-MUL r5 r6 r7
-DIV r1 r4 r3
+LDC r0 3
+LDC r1 1
+LDC r2 2
+LDC r3 5
+LDC r4 4
+LDC r5 0
+COMP r6 r5 5
+BEQ 18 r6 1
+LD r7 r0 r5
+ADDI r5 r5 1 
+LD r8 r0 r5
+COMP r9 r8 r7 
+BNE 6 r9 1
+STR r5 r7
+ADDI r5 r5 -1 
+STR r5 r8
+ADDI r5 r5 1
+JUMP 6
+NOP

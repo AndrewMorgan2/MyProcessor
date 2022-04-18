@@ -143,14 +143,8 @@ static class ReOrderBuffer
             DebugLogOutput($"Commited Load {Command.value1} to {Command.destination}");
         }
         else if (Command.opCode == "STR"){
-            int registerIndex = 0;
-            if(Command.destination.Contains('r') == true) {
-                registerIndex =  Memory.GetValueFromRegister(Command.destination);
-            } else{
-                registerIndex = Int32.Parse(Command.destination);
-            }
-            Memory.PutValueInRegisterByInt(registerIndex, Command.value1);
-            DebugLogOutput($"Commited Store {Command.value1} to register {Command.destination}");
+            Memory.PutValueInRegisterByInt(Command.value2, Command.value1);
+            DebugLogOutput($"Commited Store {Command.value1} to register r{Command.value2}");
         }
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
@@ -302,8 +296,8 @@ static class ReOrderBuffer
     static public void PrintOutReOrderBufferHistory()
     {
         Console.WriteLine("---------------- ReOrder Buffer History ----------------");
-        Console.Write("--- ReOrder Buffer Input History");
-        Console.WriteLine($"{HistoryInput}");
+        //Console.Write("--- ReOrder Buffer Input History");
+        //Console.WriteLine($"{HistoryInput}");
         Console.Write("--- ReOrder Buffer Output History");
         Console.WriteLine($"{HistoryOutput}");
         Console.WriteLine($"Number of commands sent back {numberOfCommandsSentBack}");
