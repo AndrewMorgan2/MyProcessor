@@ -274,15 +274,7 @@ public class Pipe
             destination = getNextPartFromText(currentInstruction);
             currentInstruction = currentInstruction.Remove(0, destination.Length + 1);
             string r2;
-            //Change LD to LDC
-            if (opCode == "LD")
-            {
-                r2 = getNextPartFromText(currentInstruction);
-                currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
-                Pipe.pipes[pipeName].valueRegisters[0] = currentInstruction;
-                opCode = "LDC";
-            }
-            else if (opCode == "JUMP")
+            if (opCode == "JUMP")
             {
                 Pipe.pipes[pipeName].valueRegisters[0] = destination;
             }

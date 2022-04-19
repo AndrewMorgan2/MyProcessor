@@ -27,14 +27,14 @@ namespace MyProcessor
         public static int NumberOfCache = 3;
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
-        public static int LoadAndStoreUnitNumber = 1;
+        public static int LoadAndStoreUnitNumber = 3;
         public static int SizeOfReservationStation = 50;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
-        public static bool BranchPredictionUsed = true;
-        public static int SizeOfReOrderBuffer = 20;
+        public static bool BranchPredictionUsed = false;
+        public static int SizeOfReOrderBuffer = 50;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 10000;
+        public static int CycleLimit = 1000;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -46,19 +46,19 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 3;
-        public static bool PipeDebug = true;
+        public static int testCaseToRun = 5;
+        public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
-        public static bool ExcutionUnitDebug = true;
+        public static bool ExcutionUnitDebug = false;
         public static bool WriteBackDebug = false;
-        public static bool MemoryReadOut = true;
+        public static bool MemoryReadOut = false;
         public static bool ReserveStationReadOut = false;
-        public static bool ReserveStationHistory = true;
+        public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
         public static bool BranchPredictorDebug = false;
-        public static bool ReOrderBufferDebug = true;
+        public static bool ReOrderBufferDebug = false;
         public static bool ReOrderBufferDebugOutput = true;
-        public static bool ReOrderBufferHistoryDebug = true;
+        public static bool ReOrderBufferHistoryDebug = false;
         public static bool InfiniteLoopDetection = true;
         public static int waitingCycles, cacheMisses = 0;
         public static int[] cacheCalls = new int[NumberOfCache];
@@ -83,21 +83,21 @@ namespace MyProcessor
             instructionList = new string[0];
             if (RunTests == true)
             {
-                if (testCaseToRun == 1)
-                {
-                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase1.txt");
+                string input = $"./tests/testCase{testCaseToRun}.txt";
+                instructionList = System.IO.File.ReadAllLines(@input);
+                //Load in data for binary search and bubble sort so that we get better instructions per cycle
+                //Makes comparison easier 
+                if(testCaseToRun == 4){
+                    int[] arr = {17,16,18,2,4,6,19,20,8,1,15,14,13,9,3,5,7,10,11,12};
+                    for(int i = 0; i < 20; i++) {
+                        Memory.PutValueInRegisterByInt(i, arr[i]);
+                    }
                 }
-                else if (testCaseToRun == 2)
-                {
-                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase2.txt");
-                }
-                else if (testCaseToRun == 3)
-                {
-                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase3.txt");
-                }
-                else if (testCaseToRun == 4)
-                {
-                    instructionList = System.IO.File.ReadAllLines(@"./tests/testCase4.txt");
+                if(testCaseToRun == 5){
+                    int[] arr = {0,2,5,8,10,11,15,17,22,23,25,27,28,30,31,40,42,45,50,64};
+                    for(int i = 0; i < 20; i++) {
+                        Memory.PutValueInRegisterByInt(i, arr[i]);
+                    }
                 }
             }
             else instructionList = System.IO.File.ReadAllLines(@"./assemblyCode.txt");
@@ -293,6 +293,12 @@ namespace MyProcessor
                     string Output = "Output";
                     for(int i = 0; i < 20; i++) Output = Output + ", " +  Memory.GetValueFromRegister($"r{i}");
                     Console.WriteLine($"Test Result: {Output}");
+                }
+                else if (testCaseToRun == 5)
+                {
+                    //add check to see if binary search works
+                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r20")} is in position {Memory.GetValueFromRegister("r24")} in the array");
+                    Console.WriteLine($"With {Memory.GetValueFromRegister("r30")} cuts");
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");

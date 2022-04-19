@@ -116,7 +116,7 @@ public static class ExcutionUnits
         //Get values
         excutionUnitType type;
         if (UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
-        else if (newCommand.opCode == "LDC" || newCommand.opCode == "STR") type = excutionUnitType.LoadStore;
+        else if (newCommand.opCode == "LDC" || newCommand.opCode == "STR" || newCommand.opCode == "LD") type = excutionUnitType.LoadStore;
         else if (newCommand.opCode == "BEQ" || newCommand.opCode == "BNE" || newCommand.opCode == "JUMP") type = excutionUnitType.Branch;
         else type = excutionUnitType.ALU;
         //Just determines where to put the command
@@ -294,6 +294,8 @@ public static class ExcutionUnits
         }
         unit.resStation[SizeOfReservationStation - 1] = new command { };
         unit.numberOfCommandsInTheStation--;
+        //The unit is now not busy 
+        unit.busy =false;
     }
     //Both functions below sort though the opCode and gives it to the correct Excution Unit
     static void ExcutionUnit(int name, bool resStations, ref command Command)
@@ -304,13 +306,7 @@ public static class ExcutionUnits
 
         //Here's where we decide what to actually do
         //REGISTER COMMANDS
-        if (Command.opCode == "LD")
-        {
-            //Load Register via offset
-            //Sorted to ldc at decode so we shouldn't ever run this 
-            Console.WriteLine("ERROR ----- We have command LD where we should have LDC, maybe decode failed?");
-        }
-        else if (Command.opCode == "LDC" || Command.opCode == "STR")
+        if (Command.opCode == "LDC" || Command.opCode == "STR" || Command.opCode == "LD")
         {
             //Load Register directly
             if (resStations == true)
@@ -409,9 +405,14 @@ public static class ExcutionUnits
             //Load Register directly
             loadDirectly(Command.destination, Command.value1, ref Command);
         }
+        else if (Command.opCode == "LD")
+        {
+            //Load Register via index
+            loadViaIndex(Command.destination, Command.valueString1, ref Command);
+        }
         else if (Command.opCode == "STR")
         {
-            //Load Register directly
+            //Store in register via index
             store(Command.value2, Command.value1, ref Command);
         }
         else if (Command.opCode == "MUL")
@@ -438,7 +439,7 @@ public static class ExcutionUnits
         else Command.value1 = Int32.Parse(Command.valueString1);
 
         //Check to see if they're an opCode with another value
-        if(Command.opCode == "LDC" || Command.opCode == "STR") return;
+        if(Command.opCode == "LDC" || Command.opCode == "STR" || Command.opCode == "LD") return;
         //Get value from register here (if possible)
         if (Command.valueString2.Contains('r') == true)
         {
@@ -523,7 +524,7 @@ public static class ExcutionUnits
             return;
         }
         //MUL r1 = r2 / r3 
-        int result = r2 / r3;
+        int result =(int)Math.Round((decimal)(r2 / r3));
         //System.Console.WriteLine($"Dividing {r2} to {r3}: Result {result} into {r1}");
         commandPassed.result = result;
         ReOrderBuffer.addCommand(commandPassed);
@@ -573,6 +574,14 @@ public static class ExcutionUnits
         ReOrderBuffer.addCommand(commandPassed);
         //Write Back Debug
         DebugPrintWriteBack($"Load Write Back: loaded {r2} into {r1}");
+    }
+    static void loadViaIndex(string r1, string r2, ref command commandPassed)
+    {
+        //Load r2's value into r1
+        //Console.WriteLine($"Loading value {registesCurrentValue} into {r1}");
+        ReOrderBuffer.addCommand(commandPassed);
+        //Write Back Debug
+        DebugPrintWriteBack($"Load Index Write Back: value in r{Memory.GetValueFromRegister(r2)} now also in {r1}");
     }
     static void store(int r1, int r2, ref command commandPassed){
         //Store r2's value in register correlated to the number r2 

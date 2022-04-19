@@ -10,8 +10,8 @@ The processor I am simulating has a very limited instruction set.
 | ADDI | store, r1, value | Add r1 and value store result 
 | COMP | store, r1, r2 | Stores -1 if <, 0 if ==, 1 if >
 | LDC | store, r1 | Load r1 into store
-| LD | store, r1, offset | Load r1 with offset store 
-| STR | storeNumber, r1 | Stores r1 in store (store via index from register)
+| LD | store, index | Load register via index
+| STR | index, store | Store in register via index
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
 | BNE | destination, r1, r2 | if r1 != r2 move PC to destination
 | JUMP | destination | Move PC to destination

@@ -40,12 +40,14 @@ static class ReOrderBuffer
             return;
         }
 
+        //DebugLog($"Recieved {newCommand.opCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
         //No Duplicates (command has program counter)
         foreach (command comm in contenseOfReOrderBuffer)
         {
             if (comm.Equals(new command { })) break;
             else if (comm.opCode == newCommand.opCode && comm.destination == newCommand.destination) return;
         }
+        DebugLog($"Added {newCommand.opCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
 
         //DebugLog($"Recieved command {newCommand.opCode}");
         HistoryInput = HistoryInput + newCommand.opCode + " | ";
@@ -142,14 +144,20 @@ static class ReOrderBuffer
             Memory.PutValueInRegister(Command.destination, Command.value1);
             DebugLogOutput($"Commited Load {Command.value1} to {Command.destination}");
         }
-        else if (Command.opCode == "STR"){
+        else if (Command.opCode == "LD")
+        {
+            Memory.PutValueInRegister(Command.destination, Memory.GetValueFromRegister($"r{Memory.GetValueFromRegister(Command.valueString1)}"));
+            Console.WriteLine($"Commited Load with offset so {Command.destination} has {Memory.GetValueFromRegister(Command.destination)}");
+        }
+        else if (Command.opCode == "STR")
+        {
             Memory.PutValueInRegisterByInt(Command.value2, Command.value1);
             DebugLogOutput($"Commited Store {Command.value1} to register r{Command.value2}");
         }
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
         {
-            DebugLogOutput($"Commited {Command.opCode}");
+            DebugLogOutput($"Commited {Command.opCode} with {Command.result}");
             if (Command.result == 1)
             {
                 BranchPrediction.PredictionResult(true);
@@ -175,6 +183,9 @@ static class ReOrderBuffer
                 ProgramCounter = Int32.Parse(Command.destination);
                 ShadowProgramCounter = ProgramCounter - 1;
                 DebugLogOutput($"Commited new pc {ProgramCounter}");
+                //So we get rid off all commands in the reorder buffer as they're now redudent
+                contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
+                DependencyTracker = new List<dTracker>();
             }
             else BranchPrediction.PredictionResult(false);
         }
@@ -184,6 +195,9 @@ static class ReOrderBuffer
             ProgramCounter = Int32.Parse(Command.destination);
             ShadowProgramCounter = ProgramCounter - 1;
             DebugLogOutput($"Commited new jump {ProgramCounter}");
+            //So we get rid off all commands in the reorder buffer as they're now redudent
+            contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
+            DependencyTracker = new List<dTracker>();
         }
         //ARTHEMETRIC
         else if (Command.opCode == "ADDI" || Command.opCode == "ADD" || Command.opCode == "SUB" ||

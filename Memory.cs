@@ -110,27 +110,6 @@ public class Memory
         }
         return Regfile.caches[cacheNumber].memory[registerIndex];
     }
-    static public int GetValueFromRegisterWithOffset(string registerIndexString, string offset)
-    {
-        if (registerIndexString.Contains('r') == false)
-        {
-            Console.WriteLine("Register passed without register flag! --- Cache miss");
-            cacheMisses++;
-            return 0;
-        }
-        //Remove the r
-        int registerIndex = RemoveR(registerIndexString);
-        //Add the offset
-        registerIndex = registerIndex + Int32.Parse(offset);
-        //Find which cache do we need to hit
-        int cacheNumber = 0;
-        if (registerIndex > SizeOfCache)
-        {
-            registerIndex = registerIndex - SizeOfCache;
-            cacheNumber++;
-        }
-        return Regfile.caches[cacheNumber].memory[registerIndex];
-    }
     static int RemoveR(string r1)
     {
         //Remove the r
