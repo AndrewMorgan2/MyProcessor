@@ -45,8 +45,8 @@ namespace MyProcessor
         public static int multiplyCycles = 2;
         #endregion
         #region Counting Vars for benchmarking and debug bools
-        public static bool RunTests = true;
-        public static int testCaseToRun = 5;
+        public static bool RunTests = false;
+        public static int testCaseToRun = 4;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -57,7 +57,7 @@ namespace MyProcessor
         public static bool PipeAssignmentDebug = false;
         public static bool BranchPredictorDebug = false;
         public static bool ReOrderBufferDebug = false;
-        public static bool ReOrderBufferDebugOutput = true;
+        public static bool ReOrderBufferDebugOutput = false;
         public static bool ReOrderBufferHistoryDebug = false;
         public static bool InfiniteLoopDetection = true;
         public static int waitingCycles, cacheMisses = 0;

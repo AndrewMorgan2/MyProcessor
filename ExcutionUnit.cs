@@ -116,7 +116,7 @@ public static class ExcutionUnits
         //Get values
         excutionUnitType type;
         if (UnifiedReservationStationsUsed == true) type = excutionUnitType.Unified;
-        else if (newCommand.opCode == "LDC" || newCommand.opCode == "STR" || newCommand.opCode == "LD") type = excutionUnitType.LoadStore;
+        else if (newCommand.opCode == "LDC" || newCommand.opCode == "SWAP" || newCommand.opCode == "LD") type = excutionUnitType.LoadStore;
         else if (newCommand.opCode == "BEQ" || newCommand.opCode == "BNE" || newCommand.opCode == "JUMP") type = excutionUnitType.Branch;
         else type = excutionUnitType.ALU;
         //Just determines where to put the command
@@ -306,7 +306,7 @@ public static class ExcutionUnits
 
         //Here's where we decide what to actually do
         //REGISTER COMMANDS
-        if (Command.opCode == "LDC" || Command.opCode == "STR" || Command.opCode == "LD")
+        if (Command.opCode == "LDC" || Command.opCode == "SWAP" || Command.opCode == "LD")
         {
             //Load Register directly
             if (resStations == true)
@@ -410,10 +410,10 @@ public static class ExcutionUnits
             //Load Register via index
             loadViaIndex(Command.destination, Command.valueString1, ref Command);
         }
-        else if (Command.opCode == "STR")
+        else if (Command.opCode == "SWAP")
         {
-            //Store in register via index
-            store(Command.value2, Command.value1, ref Command);
+            //Swap values 
+            swap(Command.value2, Command.value1, ref Command);
         }
         else if (Command.opCode == "MUL")
         {
@@ -439,7 +439,7 @@ public static class ExcutionUnits
         else Command.value1 = Int32.Parse(Command.valueString1);
 
         //Check to see if they're an opCode with another value
-        if(Command.opCode == "LDC" || Command.opCode == "STR" || Command.opCode == "LD") return;
+        if(Command.opCode == "LDC" || Command.opCode == "SWAP" || Command.opCode == "LD") return;
         //Get value from register here (if possible)
         if (Command.valueString2.Contains('r') == true)
         {
@@ -583,11 +583,11 @@ public static class ExcutionUnits
         //Write Back Debug
         DebugPrintWriteBack($"Load Index Write Back: value in r{Memory.GetValueFromRegister(r2)} now also in {r1}");
     }
-    static void store(int r1, int r2, ref command commandPassed){
-        //Store r2's value in register correlated to the number r2 
+    static void swap(int r1, int r2, ref command commandPassed){
+        //Swap r2's value in register correlated to the number r2 
         ReOrderBuffer.addCommand(commandPassed);
         //Write Back Debug
-        DebugPrintWriteBack($"Store Write Back: loaded {r2} into regsiter {r1}");
+        DebugPrintWriteBack($"Swapping values {r1} and {r2}");
     }
     #endregion
 

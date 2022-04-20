@@ -10,10 +10,10 @@ The processor I am simulating has a very limited instruction set.
 | ADDI | store, r1, value | Add r1 and value store result 
 | COMP | store, r1, r2 | Stores -1 if <, 0 if ==, 1 if >
 | LDC | store, r1 | Load r1 into store
-| LD | store, index | Load register via index
-| STR | index, store | Store in register via index
+| LD | storeValueInRegister, index | Load register via index
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
 | BNE | destination, r1, r2 | if r1 != r2 move PC to destination
+| SWAP | r1, r2 | Swap values so r1's value is stored in r2 and r2's value is stored in r1
 | JUMP | destination | Move PC to destination
 | NOP | Ends Process | Ends process 
 ## Code Layout 

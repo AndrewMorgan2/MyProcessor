@@ -293,7 +293,10 @@ public class Pipe
         }
         //Give opCode and destination
         Pipe.pipes[pipeName].Opcode = opCode;
-        if (opCode == "STR") Pipe.pipes[pipeName].valueRegisters[1] = destination;
+        if (opCode == "SWAP") {
+            Pipe.pipes[pipeName].valueRegisters[1] = destination;
+            Pipe.pipes[pipeName].Destination = "";
+        }
         else Pipe.pipes[pipeName].Destination = destination;
     }
     //Function to load speculative commands into the list of speculative commands

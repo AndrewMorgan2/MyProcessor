@@ -147,12 +147,17 @@ static class ReOrderBuffer
         else if (Command.opCode == "LD")
         {
             Memory.PutValueInRegister(Command.destination, Memory.GetValueFromRegister($"r{Memory.GetValueFromRegister(Command.valueString1)}"));
-            Console.WriteLine($"Commited Load with offset so {Command.destination} has {Memory.GetValueFromRegister(Command.destination)}");
+            DebugLogOutput($"Commited Load with offset so {Command.destination} has {Memory.GetValueFromRegister(Command.destination)}");
         }
-        else if (Command.opCode == "STR")
+        else if (Command.opCode == "SWAP")
         {
-            Memory.PutValueInRegisterByInt(Command.value2, Command.value1);
-            DebugLogOutput($"Commited Store {Command.value1} to register r{Command.value2}");
+            //Confusing as valueString2 relates to r1 and valueString1 relates to r2
+            int valueInR1 = Memory.GetValueFromRegister(Command.valueString2);
+            int valueInR2 = Memory.GetValueFromRegister(Command.valueString1);
+            Memory.PutValueInRegister(Command.valueString1, valueInR1);
+            Memory.PutValueInRegister(Command.valueString2, valueInR2);
+            Console.WriteLine($"Swap commited between {Command.valueString2} and {Command.valueString1}");
+            Console.WriteLine($"So r1 {valueInR1} to {Memory.GetValueFromRegister(Command.valueString2)} and r2 {valueInR2} to {Memory.GetValueFromRegister(Command.valueString1)}");
         }
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
