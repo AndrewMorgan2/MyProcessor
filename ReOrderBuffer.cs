@@ -42,16 +42,19 @@ static class ReOrderBuffer
 
         //DebugLog($"Recieved {newCommand.opCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
         //No Duplicates (command has program counter)
+        //Console.WriteLine(newCommand.assemblyCode);
         foreach (command comm in contenseOfReOrderBuffer)
         {
             if (comm.Equals(new command { })) break;
-            else if (comm.opCode == newCommand.opCode && comm.destination == newCommand.destination) return;
+            else if (comm.assemblyCode == newCommand.assemblyCode) return;
         }
-        DebugLog($"Added {newCommand.opCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
+        //If we load in an old command then ignore it 
+        if(newCommand.PC < ShadowProgramCounter) return;
+        DebugLog($"Added {newCommand.assemblyCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
 
         //DebugLog($"Recieved command {newCommand.opCode}");
         HistoryInput = HistoryInput + newCommand.opCode + " | ";
-        //Shadow PC makes sure we didn't jump to another command 
+        //Shadow PC makes sure we keep order after OoO excution 
         if (ShadowProgramCounter == newCommand.PC)
         {
             DebugLog($"{newCommand.opCode} straight in {newCommand.PC}");
@@ -149,15 +152,14 @@ static class ReOrderBuffer
             Memory.PutValueInRegister(Command.destination, Memory.GetValueFromRegister($"r{Memory.GetValueFromRegister(Command.valueString1)}"));
             DebugLogOutput($"Commited Load with offset so {Command.destination} has {Memory.GetValueFromRegister(Command.destination)}");
         }
-        else if (Command.opCode == "SWAP")
+        else if (Command.opCode == "STR")
         {
+            //STR this.value this.value.indexedRegister
             //Confusing as valueString2 relates to r1 and valueString1 relates to r2
-            int valueInR1 = Memory.GetValueFromRegister(Command.valueString2);
-            int valueInR2 = Memory.GetValueFromRegister(Command.valueString1);
-            Memory.PutValueInRegister(Command.valueString1, valueInR1);
-            Memory.PutValueInRegister(Command.valueString2, valueInR2);
-            Console.WriteLine($"Swap commited between {Command.valueString2} and {Command.valueString1}");
-            Console.WriteLine($"So r1 {valueInR1} to {Memory.GetValueFromRegister(Command.valueString2)} and r2 {valueInR2} to {Memory.GetValueFromRegister(Command.valueString1)}");
+            string index = $"r{Memory.GetValueFromRegister(Command.valueString1)}";
+            int valueToBeInserted = Memory.GetValueFromRegister(Command.valueString2);
+            Memory.PutValueInRegister(index, valueToBeInserted);
+            DebugLogOutput($"Commited store {valueToBeInserted} to {index}");
         }
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")

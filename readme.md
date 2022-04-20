@@ -13,7 +13,7 @@ The processor I am simulating has a very limited instruction set.
 | LD | storeValueInRegister, index | Load register via index
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
 | BNE | destination, r1, r2 | if r1 != r2 move PC to destination
-| SWAP | r1, r2 | Swap values so r1's value is stored in r2 and r2's value is stored in r1
+| SWAP | r1, r2, indexr1, indexr2 | Swap values so r1's value is an index of a register, we take the value from that register and put it in the register correlating to the to the index in r2 (and vis versa)
 | JUMP | destination | Move PC to destination
 | NOP | Ends Process | Ends process 
 ## Code Layout 

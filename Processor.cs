@@ -27,7 +27,7 @@ namespace MyProcessor
         public static int NumberOfCache = 3;
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
-        public static int LoadAndStoreUnitNumber = 3;
+        public static int LoadAndStoreUnitNumber = 2;
         public static int SizeOfReservationStation = 50;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
@@ -45,7 +45,7 @@ namespace MyProcessor
         public static int multiplyCycles = 2;
         #endregion
         #region Counting Vars for benchmarking and debug bools
-        public static bool RunTests = false;
+        public static bool RunTests = true;
         public static int testCaseToRun = 4;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
@@ -87,15 +87,20 @@ namespace MyProcessor
                 instructionList = System.IO.File.ReadAllLines(@input);
                 //Load in data for binary search and bubble sort so that we get better instructions per cycle
                 //Makes comparison easier 
-                if(testCaseToRun == 4){
-                    int[] arr = {17,16,18,2,4,6,19,20,8,1,15,14,13,9,3,5,7,10,11,12};
-                    for(int i = 0; i < 20; i++) {
+                if (testCaseToRun == 4)
+                {
+                    int[] arr = { 17, 16, 18, 2, 4, 6, 19, 20, 8, 1, 15, 14, 13, 9, 3, 5, 7, 10, 11, 12 };
+                    //int[] arr = { 1, 100, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 10, 11, 12 };
+                    for (int i = 0; i < 20; i++)
+                    {
                         Memory.PutValueInRegisterByInt(i, arr[i]);
                     }
                 }
-                if(testCaseToRun == 5){
-                    int[] arr = {0,2,5,8,10,11,15,17,22,23,25,27,28,30,31,40,42,45,50,64};
-                    for(int i = 0; i < 20; i++) {
+                if (testCaseToRun == 5)
+                {
+                    int[] arr = { 0, 2, 5, 8, 10, 11, 15, 17, 22, 23, 25, 27, 28, 30, 31, 40, 42, 45, 50, 64 };
+                    for (int i = 0; i < 20; i++)
+                    {
                         Memory.PutValueInRegisterByInt(i, arr[i]);
                     }
                 }
@@ -128,6 +133,10 @@ namespace MyProcessor
                 }
                 //Keep track of how many cycles are used
                 Totalcycles++;
+
+                //Debug per cycle
+                //Console.WriteLine($"r20:{Memory.GetValueFromRegister("r20")}, r22:{Memory.GetValueFromRegister("r22")}, r23:{Memory.GetValueFromRegister("r23")}, r24:{Memory.GetValueFromRegister("r24")}");
+                //Console.WriteLine($"PC: {ProgramCounter}");
 
                 //Pipe Clear Detection
                 pipesClear = 0;
@@ -291,8 +300,18 @@ namespace MyProcessor
                 else if (testCaseToRun == 4)
                 {
                     string Output = "Output";
-                    for(int i = 0; i < 20; i++) Output = Output + ", " +  Memory.GetValueFromRegister($"r{i}");
+                    for (int i = 0; i < 20; i++) Output = Output + ", " + Memory.GetValueFromRegister($"r{i}");
+                    int[] arr = { 17, 16, 18, 2, 4, 6, 19, 20, 8, 1, 15, 14, 13, 9, 3, 5, 7, 10, 11, 12 };
+                    string input = "Input";
+                    foreach (int x in arr) input = input + ", " + x.ToString();
+                    Console.WriteLine($"Test Input: {input}");
                     Console.WriteLine($"Test Result: {Output}");
+                    Console.WriteLine($"index: {Memory.GetValueFromRegister("r20")} Result for n-1 comp i: {Memory.GetValueFromRegister("r30")} arr[i]:{Memory.GetValueFromRegister("r22")} arr[i+1]:{Memory.GetValueFromRegister("r23")}");
+                    foreach (command comm in ReOrderBuffer.contenseOfReOrderBuffer)
+                    {
+                        if (comm.Equals(new command { })) break;
+                        Console.WriteLine($"{comm.assemblyCode}");
+                    }
                 }
                 else if (testCaseToRun == 5)
                 {

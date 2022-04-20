@@ -293,7 +293,7 @@ public class Pipe
         }
         //Give opCode and destination
         Pipe.pipes[pipeName].Opcode = opCode;
-        if (opCode == "SWAP") {
+        if (opCode == "STR") {
             Pipe.pipes[pipeName].valueRegisters[1] = destination;
             Pipe.pipes[pipeName].Destination = "";
         }
