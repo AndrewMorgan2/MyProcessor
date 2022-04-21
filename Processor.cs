@@ -31,10 +31,10 @@ namespace MyProcessor
         public static int SizeOfReservationStation = 50;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
-        public static bool BranchPredictionUsed = false;
+        public static bool BranchPredictionUsed = true;
         public static int SizeOfReOrderBuffer = 50;
         //This is the number of cycles before we force quit (used to detect infinite loops in a very simple way)
-        public static int CycleLimit = 1000;
+        public static int CycleLimit = 100000;
         public static int ProgramCounter, ExcutionOrder, Totalcycles = 0;
         #endregion
         #region Number of cycles to do certain operations
@@ -136,7 +136,7 @@ namespace MyProcessor
 
                 //Debug per cycle
                 //Console.WriteLine($"r20:{Memory.GetValueFromRegister("r20")}, r22:{Memory.GetValueFromRegister("r22")}, r23:{Memory.GetValueFromRegister("r23")}, r24:{Memory.GetValueFromRegister("r24")}");
-                //Console.WriteLine($"PC: {ProgramCounter}");
+                //Console.WriteLine($"r28: {Memory.GetValueFromRegister("r28")}");
 
                 //Pipe Clear Detection
                 pipesClear = 0;
@@ -306,7 +306,7 @@ namespace MyProcessor
                     foreach (int x in arr) input = input + ", " + x.ToString();
                     Console.WriteLine($"Test Input: {input}");
                     Console.WriteLine($"Test Result: {Output}");
-                    Console.WriteLine($"index: {Memory.GetValueFromRegister("r20")} Result for n-1 comp i: {Memory.GetValueFromRegister("r30")} arr[i]:{Memory.GetValueFromRegister("r22")} arr[i+1]:{Memory.GetValueFromRegister("r23")}");
+                    Console.WriteLine($"index: {Memory.GetValueFromRegister("r20")} Result for n-1 comp i: {Memory.GetValueFromRegister("r30")} arr[i]:{Memory.GetValueFromRegister("r22")} arr[i+1]:{Memory.GetValueFromRegister("r23")} r28:{Memory.GetValueFromRegister("r28")}");
                     foreach (command comm in ReOrderBuffer.contenseOfReOrderBuffer)
                     {
                         if (comm.Equals(new command { })) break;
