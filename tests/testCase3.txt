@@ -4,7 +4,7 @@ LDC r2 5
 LDC r3 8
 LDC r4 9
 LDC r5 0 
-COMP r6 r5 9
+COMP r6 r5 100
 BEQ 15 r6 1 
 ADDI r0 r0 5
 ADDI r1 r1 5

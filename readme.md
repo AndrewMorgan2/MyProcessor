@@ -13,7 +13,7 @@ The processor I am simulating has a very limited instruction set.
 | LD | storeValueInRegister, index | Load register via index
 | BEQ | destination, r1, r2 | if r1 == r2 move PC to destination
 | BNE | destination, r1, r2 | if r1 != r2 move PC to destination
-| SWAP | r1, r2, indexr1, indexr2 | Swap values so r1's value is an index of a register, we take the value from that register and put it in the register correlating to the to the index in r2 (and vis versa)
+| STR | index, storeValueInRegister | Store via index
 | JUMP | destination | Move PC to destination
 | NOP | Ends Process | Ends process 
 ## Code Layout 
@@ -36,5 +36,5 @@ look for tree to make two state branch prediction bad and write about it
 1. Work out Factorial of x 
 2. Work out x in the fibonacci sequence
 3. Do x number of simple additions 
-4. Bubble sort (to be added)
-5. Binary search (to be added)
+4. Bubble sort
+5. Binary search

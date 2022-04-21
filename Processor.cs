@@ -23,7 +23,7 @@ namespace MyProcessor
         #region Processor Stats
         public static bool runProcessor = true;
         public static int NumberOfPipes = 3;
-        public static int SizeOfCache = 20;
+        public static int SizeOfCache = 150;
         public static int NumberOfCache = 3;
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
@@ -46,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 4;
+        public static int testCaseToRun = 5;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -98,8 +98,8 @@ namespace MyProcessor
                 }
                 if (testCaseToRun == 5)
                 {
-                    int[] arr = { 0, 2, 5, 8, 10, 11, 15, 17, 22, 23, 25, 27, 28, 30, 31, 40, 42, 45, 50, 64 };
-                    for (int i = 0; i < 20; i++)
+                    int[] arr = {1	 ,2	 ,3	 ,4	 ,5	 ,6	 ,7	 ,8	 ,9	 ,10	 ,11	 ,12	 ,13	 ,14	 ,15	 ,16	 ,17	 ,18	 ,19	 ,20	 ,21	 ,22	 ,23	 ,24	 ,25	 ,26	 ,27	 ,28	 ,29	 ,30	 ,31	 ,32	 ,33	 ,34	 ,35	 ,36	 ,37	 ,38	 ,39	 ,40	 ,41	 ,42	 ,43	 ,44	 ,45	 ,46	 ,47	 ,48	 ,49	 ,50	 ,51	 ,52	 ,53	 ,54	 ,55	 ,56	 ,57	 ,58	 ,59	 ,60	 ,61	 ,62	 ,63	 ,64	 ,65	 ,66	 ,67	 ,68	 ,69	 ,70	 ,71	 ,72	 ,73	 ,74	 ,75	 ,76	 ,77	 ,78	 ,79	 ,80	 ,81	 ,82	 ,83	 ,84	 ,85	 ,86	 ,87	 ,88	 ,89	 ,90	 ,91	 ,92	 ,93	 ,94	 ,95	 ,96	 ,97	 ,98	 ,99	 ,100};
+                    for (int i = 0; i < arr.Length - 1; i++)
                     {
                         Memory.PutValueInRegisterByInt(i, arr[i]);
                     }
@@ -136,7 +136,7 @@ namespace MyProcessor
 
                 //Debug per cycle
                 //Console.WriteLine($"r20:{Memory.GetValueFromRegister("r20")}, r22:{Memory.GetValueFromRegister("r22")}, r23:{Memory.GetValueFromRegister("r23")}, r24:{Memory.GetValueFromRegister("r24")}");
-                //Console.WriteLine($"r28: {Memory.GetValueFromRegister("r28")}");
+                //Console.WriteLine($"r130: {Memory.GetValueFromRegister("r130")}");
 
                 //Pipe Clear Detection
                 pipesClear = 0;
@@ -295,7 +295,7 @@ namespace MyProcessor
                 else if (testCaseToRun == 3)
                 {
                     Console.WriteLine($"loopCounterI:{Memory.GetValueFromRegister("r5")} a:{Memory.GetValueFromRegister("r0")}, b:{Memory.GetValueFromRegister("r1")}, c:{Memory.GetValueFromRegister("r2")}, d:{Memory.GetValueFromRegister("r3")},  e:{Memory.GetValueFromRegister("r4")}");
-                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r0") == 52} | {Memory.GetValueFromRegister("r1") == 54} | {Memory.GetValueFromRegister("r2") == 55} | {Memory.GetValueFromRegister("r3") == 58} | {Memory.GetValueFromRegister("r4") == 59}");
+                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r0") == 507} | {Memory.GetValueFromRegister("r1") == 509} | {Memory.GetValueFromRegister("r2") == 510} | {Memory.GetValueFromRegister("r3") == 513} | {Memory.GetValueFromRegister("r4") == 514}");
                 }
                 else if (testCaseToRun == 4)
                 {
@@ -306,18 +306,12 @@ namespace MyProcessor
                     foreach (int x in arr) input = input + ", " + x.ToString();
                     Console.WriteLine($"Test Input: {input}");
                     Console.WriteLine($"Test Result: {Output}");
-                    Console.WriteLine($"index: {Memory.GetValueFromRegister("r20")} Result for n-1 comp i: {Memory.GetValueFromRegister("r30")} arr[i]:{Memory.GetValueFromRegister("r22")} arr[i+1]:{Memory.GetValueFromRegister("r23")} r28:{Memory.GetValueFromRegister("r28")}");
-                    foreach (command comm in ReOrderBuffer.contenseOfReOrderBuffer)
-                    {
-                        if (comm.Equals(new command { })) break;
-                        Console.WriteLine($"{comm.assemblyCode}");
-                    }
                 }
                 else if (testCaseToRun == 5)
                 {
                     //add check to see if binary search works
-                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r20")} is in position {Memory.GetValueFromRegister("r24")} in the array");
-                    Console.WriteLine($"With {Memory.GetValueFromRegister("r30")} cuts");
+                    Console.WriteLine($"Test Result: {Memory.GetValueFromRegister("r120")} is in position {Memory.GetValueFromRegister("r124")} in the array");
+                    Console.WriteLine($"With {Memory.GetValueFromRegister("r130")} cuts");
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");
