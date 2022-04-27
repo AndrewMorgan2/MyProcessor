@@ -1,0 +1,13 @@
+LDC r0 0
+LDC r1 1
+LDC r2 0
+LDC r3 2
+LDC r4 45
+COMP r5 r3 r4
+BEQ 12 r5 1 
+ADD r2 r1 r0
+LDC r0 r1
+LDC r1 r2
+ADDI r3 r3 1 
+JUMP 5
+NOP

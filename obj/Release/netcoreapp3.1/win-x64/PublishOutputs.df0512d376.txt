@@ -1,0 +1,2 @@
+A:\MyProcessor\bin\Release\netcoreapp3.1\win-x64\publish\MyProcessor.pdb
+A:\MyProcessor\bin\Release\netcoreapp3.1\win-x64\publish\MyProcessor.exe

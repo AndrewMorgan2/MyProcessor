@@ -176,11 +176,15 @@ static class ReOrderBuffer
                         BranchPrediction.BranchDebug($"Speculative branch is being check against the real excution");
                         if (speculativeCommands[0].result == Command.result)
                         {
+                            //Send back correct result
+                            BranchPrediction.correctGuesses++;
                             BranchPrediction.BranchDebug($"Branch Correct and being committed");
                             AddCommandsToRoBWhenSpecBranchIsCorrect();
                         }
                         else
                         {
+                            //Send back incorrect result
+                            BranchPrediction.incorrectGuesses++;
                             BranchPrediction.BranchDebug($"Branch InCorrect and being destroyed");
                         }
                         CleanUpSpeculativeCommands();

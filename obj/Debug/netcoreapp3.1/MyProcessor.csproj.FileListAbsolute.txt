@@ -1,0 +1,14 @@
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.exe
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.deps.json
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.runtimeconfig.json
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.runtimeconfig.dev.json
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.dll
+A:\MyProcessor\bin\Debug\netcoreapp3.1\MyProcessor.pdb
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.csproj.AssemblyReference.cache
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.GeneratedMSBuildEditorConfig.editorconfig
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.AssemblyInfoInputs.cache
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.AssemblyInfo.cs
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.csproj.CoreCompileInputs.cache
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.dll
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.pdb
+A:\MyProcessor\obj\Debug\netcoreapp3.1\MyProcessor.genruntimeconfig.cache

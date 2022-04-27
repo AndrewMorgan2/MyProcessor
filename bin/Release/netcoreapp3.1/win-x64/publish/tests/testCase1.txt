@@ -1,0 +1,9 @@
+LDC r2 1
+LDC r3 30
+LDC r4 1
+COMP r5 r4 r3
+BEQ 8 r5 1
+MUL r2 r2 r4
+ADDI r4 r4 1
+JUMP 3
+NOP

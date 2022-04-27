@@ -1,0 +1,16 @@
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.exe
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.deps.json
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.runtimeconfig.json
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.runtimeconfig.dev.json
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.dll
+A:\MyProcessor\bin\Debug\net5.0\MyProcessor.pdb
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.csproj.AssemblyReference.cache
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.GeneratedMSBuildEditorConfig.editorconfig
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.AssemblyInfoInputs.cache
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.AssemblyInfo.cs
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.csproj.CoreCompileInputs.cache
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.dll
+A:\MyProcessor\obj\Debug\net5.0\refint\MyProcessor.dll
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.pdb
+A:\MyProcessor\obj\Debug\net5.0\MyProcessor.genruntimeconfig.cache
+A:\MyProcessor\obj\Debug\net5.0\ref\MyProcessor.dll

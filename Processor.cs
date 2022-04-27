@@ -46,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 1;
+        public static int testCaseToRun = 4;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -55,7 +55,8 @@ namespace MyProcessor
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
-        public static bool BranchPredictorDebug = false;
+        public static bool BranchPredictorDebug = true;
+        public static bool BranchPredictorResults = true;
         public static bool ReOrderBufferDebug = false;
         public static bool ReOrderBufferDebugOutput = false;
         public static bool ReOrderBufferHistoryDebug = false;
@@ -278,6 +279,11 @@ namespace MyProcessor
             if (ReOrderBufferHistoryDebug == true)
             {
                 ReOrderBuffer.PrintOutReOrderBufferHistory();
+            }
+            if (BranchPredictorResults == true)
+            {
+                Console.WriteLine($"Correct guesses: {BranchPrediction.correctGuesses}");
+                Console.WriteLine($"InCorrect guesses: {BranchPrediction.incorrectGuesses}");
             }
             if (RunTests == true)
             {

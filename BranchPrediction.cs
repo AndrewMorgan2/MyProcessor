@@ -15,6 +15,8 @@ static class BranchPrediction
     public static bool oneState = true;
     //0 strongly not take //1 weakly not taken //2 weakly taken //3 strongly taken
     public static int twoState = 0;
+    public static int correctGuesses = 0;
+    public static int incorrectGuesses = 0;
     public static void SendBranchToPrediction(string instruction)
     {
         string assemblyCode = instruction;
