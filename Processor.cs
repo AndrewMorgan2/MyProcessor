@@ -46,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun = 4;
+        public static int testCaseToRun =5;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
@@ -55,7 +55,7 @@ namespace MyProcessor
         public static bool ReserveStationReadOut = false;
         public static bool ReserveStationHistory = false;
         public static bool PipeAssignmentDebug = false;
-        public static bool BranchPredictorDebug = true;
+        public static bool BranchPredictorDebug = false;
         public static bool BranchPredictorResults = true;
         public static bool ReOrderBufferDebug = false;
         public static bool ReOrderBufferDebugOutput = false;
@@ -321,7 +321,7 @@ namespace MyProcessor
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");
-            Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} + {Pipe.commandsDoneAgain} / {Totalcycles}");
+            Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} / {Totalcycles} \n");
         }
         //Gets next part of the instruction eg (opcode/ register/ int/)
         public static string getNextPartFromText(string command)

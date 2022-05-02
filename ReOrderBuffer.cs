@@ -5,7 +5,7 @@ using command = MyProcessor.command;
 static class ReOrderBuffer
 {
     #region static public Vars
-    static public List<command> contenseOfReOrderBuffer, speculativeCommands;
+    static public List<command> contenseOfReOrderBuffer, speculativeCommands, predictions;
     static private List<dTracker> DependencyTracker;
     static public int numberOfCommandsSentBack, ShadowProgramCounter = 0;
     static private string HistoryInput, HistoryOutput;
@@ -21,6 +21,7 @@ static class ReOrderBuffer
         contenseOfReOrderBuffer = new List<command>(new command[SizeOfReOrderBuffer]);
         DependencyTracker = new List<dTracker>();
         speculativeCommands = new List<command>();
+        predictions = new List<command>();
         HistoryOutput = "";
         HistoryInput = "";
     }
@@ -31,9 +32,11 @@ static class ReOrderBuffer
         //0 means it's not speculation
         if (newCommand.specBranch != 0)
         {
+
             foreach (command cmd in speculativeCommands)
             {
-                if (cmd.opCode == newCommand.opCode && cmd.destination == newCommand.destination) return;
+                //Console.WriteLine($"{newCommand.opCode}");
+                if (cmd.assemblyCode == newCommand.assemblyCode) return;
             }
             speculativeCommands.Add(newCommand);
             BranchPrediction.BranchDebug($"Added {newCommand.opCode} to spec branch in RoB");
@@ -50,7 +53,7 @@ static class ReOrderBuffer
         }
         //If we load in an old command then ignore it 
         if(newCommand.PC < ShadowProgramCounter) {
-            Console.WriteLine($"old commands sent to ROB");
+            //Console.WriteLine($"old commands sent to ROB");
             return;
         }
         DebugLog($"Added {newCommand.assemblyCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
@@ -169,6 +172,14 @@ static class ReOrderBuffer
         //BRANCH COMMANDS result:1 => take it || result:0 => Dont take it
         else if (Command.opCode == "BEQ" || Command.opCode == "BNE")
         {
+            foreach(command cmd in predictions){
+                if(cmd.assemblyCode == Command.assemblyCode) {
+                    if(cmd.result == Command.result) BranchPrediction.correctGuesses++;
+                    else BranchPrediction.incorrectGuesses++;
+                    predictions.Remove(cmd);
+                    break;
+                }
+            }
             DebugLogOutput($"Commited {Command.opCode} with {Command.result}");
             if (Command.result == 1)
             {
@@ -182,14 +193,18 @@ static class ReOrderBuffer
                         if (speculativeCommands[0].result == Command.result)
                         {
                             //Send back correct result
+                            /*
                             BranchPrediction.correctGuesses++;
-                            BranchPrediction.BranchDebug($"Branch Correct and being committed");
+                            */
+                            BranchPrediction.BranchDebug($"Branch Correct and being committed with {speculativeCommands.Count}");
                             AddCommandsToRoBWhenSpecBranchIsCorrect();
                         }
                         else
                         {
                             //Send back incorrect result
+                            /*
                             BranchPrediction.incorrectGuesses++;
+                            */
                             BranchPrediction.BranchDebug($"Branch InCorrect and being destroyed");
                         }
                         CleanUpSpeculativeCommands();
@@ -313,6 +328,9 @@ static class ReOrderBuffer
             acceptedSpecBranch.specBranch = 0;
             addCommand(acceptedSpecBranch);
         }
+    }
+    static public void SendPrediction(command prediction){
+        predictions.Add(prediction);
     }
     #region Debugging
     static private void DebugLog(string debugPrint)

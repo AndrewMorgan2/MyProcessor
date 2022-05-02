@@ -106,7 +106,7 @@ public class Pipe
                             //If we see a branch command then send it to the branch predictor aswell
                             if (instructionList[ProgramCounter].Substring(0, 3) == "BEQ" || instructionList[ProgramCounter].Substring(0, 3) == "BNE")
                             {
-                                BranchPrediction.SendBranchToPrediction(instructionList[ProgramCounter]);
+                                BranchPrediction.SendBranchToPrediction(instructionList[ProgramCounter], ProgramCounter);
                             }
                         }
                         //Debug assignment
@@ -166,6 +166,7 @@ public class Pipe
                     Pipe.pipes[i].specBranch = 1;
                     speculativeProgramCounter++;
                     speculativeInstructions.Remove(speculativeInstructions[0]);
+                    /*
                     //What are all the other pipes up to 
                     for (int b = 0; NumberOfPipes > b; b++)
                     {
@@ -177,6 +178,7 @@ public class Pipe
                             UpdatePipe(Pipe.pipes[b].Name);
                         }
                     }
+                    */
                 }
             }
             else

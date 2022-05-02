@@ -11,13 +11,13 @@ static class BranchPrediction
     //Type 3 (static: if backward take)
     //Type 4 (one state)
     //Type 5 (two state)
-    static int typeOfBranchPrediction = 1;
+    static int typeOfBranchPrediction = 5;
     public static bool oneState = true;
     //0 strongly not take //1 weakly not taken //2 weakly taken //3 strongly taken
     public static int twoState = 0;
     public static int correctGuesses = 0;
     public static int incorrectGuesses = 0;
-    public static void SendBranchToPrediction(string instruction)
+    public static void SendBranchToPrediction(string instruction, int pc)
     {
         string assemblyCode = instruction;
         string opCodeBranch = getNextPartFromText(instruction);
@@ -32,7 +32,7 @@ static class BranchPrediction
             opCode = opCodeBranch,
             destination = destination,
             dependencies = new List<string>(),
-            PC = 0,
+            PC = pc,
             cycleCalculatedIn = 0,
             specBranch = 1,
             result = 0
@@ -87,11 +87,12 @@ static class BranchPrediction
             else branchCommand.result = 1;
         }
         ReOrderBuffer.addCommand(branchCommand);
+        ReOrderBuffer.SendPrediction(branchCommand);
         //Get pipe to fetch these commands when they are'ny busy with none speculative commands
         if (branchCommand.result == 1)
         {
             Pipe.LoadSpeculativeCommands(Int32.Parse(branchCommand.destination));
-        }
+        } else Pipe.LoadSpeculativeCommands(branchCommand.PC);
     }
     public static void PredictionResult(bool taken)
     {
