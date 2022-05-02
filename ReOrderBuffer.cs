@@ -49,7 +49,10 @@ static class ReOrderBuffer
             else if (comm.assemblyCode == newCommand.assemblyCode) return;
         }
         //If we load in an old command then ignore it 
-        if(newCommand.PC < ShadowProgramCounter) return;
+        if(newCommand.PC < ShadowProgramCounter) {
+            Console.WriteLine($"old commands sent to ROB");
+            return;
+        }
         DebugLog($"Added {newCommand.assemblyCode} at {newCommand.PC} with shadow:{ShadowProgramCounter}");
 
         //DebugLog($"Recieved command {newCommand.opCode}");
@@ -72,7 +75,9 @@ static class ReOrderBuffer
                     //Check to see if the buffer is full
                     if (!contenseOfReOrderBuffer[SizeOfReOrderBuffer - 1].Equals(new command { }))
                     {
-                        Console.WriteLine("REORDER BUFFER IS TOO FULL FOR THE NEW COMMAND");
+                        //Send command back 
+                        SendCommandBack(ref newCommand);
+                        //Console.WriteLine("REORDER BUFFER IS TOO FULL FOR THE NEW COMMAND");
                     }
                     //Check to see if there are true dependencies 
                     //Check that r1 and r2 from new command aren't changed by commands above

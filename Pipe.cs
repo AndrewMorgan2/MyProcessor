@@ -31,7 +31,7 @@ public class Pipe
     static public pipeData[] pipes = new pipeData[NumberOfPipes];
     static public List<command> sentBackCommands = new List<command>();
     static public List<string> speculativeInstructions = new List<string>();
-    static public int speculativeProgramCounter = 0;
+    static public int speculativeProgramCounter, commandsDoneAgain = 0;
     #endregion
     //Called at the start to make the pipes
     static public void makePipes()
@@ -90,7 +90,7 @@ public class Pipe
         //Assign instruction to pipe 
         for (int i = 0; NumberOfPipes > i; i++)
         {
-            if (ProgramCounter < instructionList.Length)
+            if (ProgramCounter < instructionList.Length || sentBackCommands.Count != 0)
             {
                 //Check to see if a pipe is empty or if it's excuting something fast
                 if (pipes[i].ActiveCommand == null || pipes[i].ActiveCommand == "Waiting" || (pipes[i].ActiveCommand == "Excute" && pipes[i].busy == false))
@@ -124,9 +124,13 @@ public class Pipe
 
                         PipeReplaceCommand(pipes[i].ActiveCommand, String.Format($"Fetch {sentBackCommands[0].assemblyCode}"), pipes[i].Name);
                         Pipe.pipes[i].PC = sentBackCommands[0].PC;
+
+                        sentBackCommands.RemoveAt(0);
+                        commandsDoneAgain++;
                     }
                     ExcutionOrder++;
 
+                    /*
                     //What are all the other pipes up to 
                     for (int b = 0; NumberOfPipes > b; b++)
                     {
@@ -140,6 +144,7 @@ public class Pipe
                     }
                     //We don't want all empty pipes to be assigned the same task
                     break;
+                    */
                 }
                 //If we have full pipes then we just want them to update
                 else UpdatePipe(Pipe.pipes[i].Name);
@@ -192,13 +197,16 @@ public class Pipe
         }
         else if (Pipe.pipes[pipeName].ActiveCommand.Substring(0, 5) == "Fetch")
         {
-            PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Decode", pipeName);
+            PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Excute", pipeName);
         }
+        /*
+        //Decode and fetch rolled into one
         else if (Pipe.pipes[pipeName].ActiveCommand == "Decode")
         {
             //Console.WriteLine($"{Pipe.pipes[pipeName].CommandHistory}");
             PipeReplaceCommand(Pipe.pipes[pipeName].ActiveCommand, "Excute", pipeName);
         }
+        */
         else if (Pipe.pipes[pipeName].ActiveCommand == "Excute")
         {
             //Check to see if the pipe is still excuting 
@@ -241,12 +249,17 @@ public class Pipe
         {
             //We fetch 
             Pipe.pipes[pipeName].CurrentInstruction = Pipe.pipes[pipeName].ActiveCommand.Remove(0, 5);
+            //We decode
+            Decode(pipeName);
         }
+        /*
+        Rolled fetch and decode into one
         else if (command == "Decode")
         {
             //We decode 
             Decode(pipeName);
         }
+        */
         else if (command == "Excute")
         {
             //We excute

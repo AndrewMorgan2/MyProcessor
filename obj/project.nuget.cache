@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "2jR7yOkKpEBfRhPGKtdLvOO1SgaFaegu2VbXHnFcarCcPT+UsmBjGm9qECvDRF1OopkdQM/X53lIZjxyVG6WJw==",
+  "dgSpecHash": "5qySzAnuvxpKIkAmQn+rIJJfIp7nNSHun6F8HsKuQ3FTozDwPucEBlJBvgePYaVnuVkpOVJJAbolf0ofyxnMLg==",
   "success": true,
-  "projectFilePath": "A:\\MyProcessor\\MyProcessor.csproj",
+  "projectFilePath": "C:\\Users\\andre\\Desktop\\MyProcessor\\MyProcessor.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

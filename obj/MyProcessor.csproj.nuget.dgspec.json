@@ -1,30 +1,33 @@
 {
   "format": 1,
   "restore": {
-    "A:\\MyProcessor\\MyProcessor.csproj": {}
+    "C:\\Users\\andre\\Desktop\\MyProcessor\\MyProcessor.csproj": {}
   },
   "projects": {
-    "A:\\MyProcessor\\MyProcessor.csproj": {
+    "C:\\Users\\andre\\Desktop\\MyProcessor\\MyProcessor.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "A:\\MyProcessor\\MyProcessor.csproj",
+        "projectUniqueName": "C:\\Users\\andre\\Desktop\\MyProcessor\\MyProcessor.csproj",
         "projectName": "MyProcessor",
-        "projectPath": "A:\\MyProcessor\\MyProcessor.csproj",
-        "packagesPath": "C:\\Users\\Andrew\\.nuget\\packages\\",
-        "outputPath": "A:\\MyProcessor\\obj\\",
+        "projectPath": "C:\\Users\\andre\\Desktop\\MyProcessor\\MyProcessor.csproj",
+        "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\andre\\Desktop\\MyProcessor\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
         "configFilePaths": [
-          "C:\\Users\\Andrew\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net6.0"
+          "net5.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net6.0": {
-            "targetAlias": "net6.0",
+          "net5.0": {
+            "targetAlias": "net5.0",
             "projectReferences": {}
           }
         },
@@ -35,8 +38,8 @@
         }
       },
       "frameworks": {
-        "net6.0": {
-          "targetAlias": "net6.0",
+        "net5.0": {
+          "targetAlias": "net5.0",
           "imports": [
             "net461",
             "net462",
@@ -52,7 +55,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.201\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.405\\RuntimeIdentifierGraph.json"
         }
       }
     }

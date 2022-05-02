@@ -28,7 +28,7 @@ namespace MyProcessor
         public static int ALUUnitNumber = 3;
         public static int BranchUnitNumber = 1;
         public static int LoadAndStoreUnitNumber = 2;
-        public static int SizeOfReservationStation = 50;
+        public static int SizeOfReservationStation = 5;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
         public static bool BranchPredictionUsed = true;
@@ -123,7 +123,7 @@ namespace MyProcessor
             //Checks to see if pipes are clear
             //Checks to see if RS is clear 
             //Cheks to see if RoB is clear
-            while (((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer]))))
+            while (((instructionList.Length > ProgramCounter) || (pipesClear < NumberOfPipes) || (clearReservationStations < totalReservationStations) || (ReOrderBuffer.contenseOfReOrderBuffer == new List<command>(new command[SizeOfReOrderBuffer])) || Pipe.sentBackCommands.Count != 0))
             {
                 //Assign jobs to pipes
                 Pipe.PipeAssignment(instructionList, ref ProgramCounter);
@@ -321,7 +321,7 @@ namespace MyProcessor
                 }
             }
             Console.WriteLine("---------------- Key Info ----------------");
-            Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} / {Totalcycles} ");
+            Console.WriteLine($"RoB at {ReOrderBuffer.ShadowProgramCounter} | ExcutionOrder at {ExcutionOrder} | PC at {ProgramCounter} | Total cycles taken to complete the program {Totalcycles} | Instructions per cycle {ExcutionOrder} + {Pipe.commandsDoneAgain} / {Totalcycles}");
         }
         //Gets next part of the instruction eg (opcode/ register/ int/)
         public static string getNextPartFromText(string command)
