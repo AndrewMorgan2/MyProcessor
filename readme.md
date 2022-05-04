@@ -1,5 +1,5 @@
 # Processor
-The processor I am simulating has a very limited instruction set. 
+The processor I am simulating has a very limited instruction set. To compile put "xbuild" in the command line.
 ## How to use 
 The processor uses a long list of booleans to decide how it runs and what it prints out. There are debug booleans which allow classes (eg excution units) to print there outputs. If you want to run your own program (using the instruction set below) change the "RunTests" boolean to false, and write your program in assemblyCode.txt . 
 ## Instructions
