@@ -46,3 +46,8 @@ A:\MyProcessor2\obj\Debug\net5.0\refint\MyProcessor.dll
 A:\MyProcessor2\obj\Debug\net5.0\MyProcessor.pdb
 A:\MyProcessor2\obj\Debug\net5.0\MyProcessor.genruntimeconfig.cache
 A:\MyProcessor2\obj\Debug\net5.0\ref\MyProcessor.dll
+C:\Users\andre\Desktop\MyProcessor\obj\Debug\net5.0\MyProcessor.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\andre\Desktop\MyProcessor\obj\Debug\net5.0\staticwebassets\MyProcessor.StaticWebAssets.Manifest.cache
+C:\Users\andre\Desktop\MyProcessor\obj\Debug\net5.0\staticwebassets\MyProcessor.StaticWebAssets.xml
+C:\Users\andre\Desktop\MyProcessor\obj\Debug\net5.0\scopedcss\bundle\MyProcessor.styles.css
+C:\Users\andre\Desktop\MyProcessor\obj\Debug\net5.0\MyProcessor.RazorTargetAssemblyInfo.cache

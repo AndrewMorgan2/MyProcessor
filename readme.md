@@ -32,8 +32,6 @@ This conducts all the excution along with changing the data struct from pipeData
 The reorder buffer commits commands to memory while checking to see if there are dependencies between them. If a dependency is caught then the command is sent back.
 ### Branch Prediction
 The branch predictor is sent any branch commands, giving them an speculative result and pushing them to the RoB. We also tell pipes where we want to start a speculative branch, this means the pipe will decode and excute the speculative branch (these commands are a lower priority then commands that aren't speculative). The branch predictor has an int value that decides waht type of predictor it will be, it has types fixed (take and not take) dynamic (backward and forward) along with one and two state predictors.  
-## Future Work
-look for tree to make two state branch prediction bad and write about it
 ## Test Cases
 1. Work out Factorial of x 
 2. Work out x in the fibonacci sequence
