@@ -25,10 +25,10 @@ namespace MyProcessor
         public static int NumberOfPipes = 3;
         public static int SizeOfCache = 150;
         public static int NumberOfCache = 3;
-        public static int ALUUnitNumber = 3;
+        public static int ALUUnitNumber = 2;
         public static int BranchUnitNumber = 1;
-        public static int LoadAndStoreUnitNumber = 2;
-        public static int SizeOfReservationStation = 5;
+        public static int LoadAndStoreUnitNumber = 3;
+        public static int SizeOfReservationStation = 50;
         public static bool ReservationStationsUsed = true;
         public static bool UnifiedReservationStationsUsed = false;
         public static bool BranchPredictionUsed = true;
@@ -46,7 +46,7 @@ namespace MyProcessor
         #endregion
         #region Counting Vars for benchmarking and debug bools
         public static bool RunTests = true;
-        public static int testCaseToRun =5;
+        public static int testCaseToRun =4;
         public static bool PipeDebug = false;
         public static bool MemoryDebug = false;
         public static bool ExcutionUnitDebug = false;
