@@ -1,5 +1,5 @@
 # Processor
-The processor I am simulating has a very limited instruction set. To compile put "xbuild" in the command line.
+The processor I am simulating has a very limited instruction set.
 ## Compile
 To compile "mcs -out:MyProcessor.exe Processor.cs Pipe.cs ReOrderBuffer.cs ExcutionUnit.cs Memory.cs BranchPrediction"
 To run "mono MyProcessor.exe"
