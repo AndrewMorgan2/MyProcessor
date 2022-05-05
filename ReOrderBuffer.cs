@@ -6,6 +6,7 @@ static class ReOrderBuffer
 {
     #region static public Vars
     static public List<command> contenseOfReOrderBuffer, speculativeCommands, predictions;
+    static public List<List<command>> predictedBranches;
     static private List<dTracker> DependencyTracker;
     static public int numberOfCommandsSentBack, ShadowProgramCounter = 0;
     static private string HistoryInput, HistoryOutput;
@@ -330,7 +331,75 @@ static class ReOrderBuffer
         }
     }
     static public void SendPrediction(command prediction){
-        predictions.Add(prediction);
+        //Make a list of commands to be added to rob if result is the same
+        List<command> thisPrediction = new List<command>();
+        thisPrediction.Add(prediction);
+        int startPosInInstructionList = 0;
+        if(prediction.result == 1){
+            startPosInInstructionList = Int32.Parse(prediction.destination);
+        } 
+        else {
+            startPosInInstructionList = prediction.PC + 1;
+        }
+        for(int i = startPosInInstructionList; i < instructionList.Length; i++){
+                command commandToBeAdded = decode(instructionList[i]);
+                if(commandToBeAdded.opCode == "BEQ" || commandToBeAdded.opCode == "BNE") break;
+                thisPrediction.Add(commandToBeAdded);
+                Console.WriteLine(commandToBeAdded.assemblyCode);
+            }
+        //Check to see if we already have aprediction for this branch 
+        foreach(List<command> branch in predictedBranches){
+            if(branch[0].assemblyCode == thisPrediction[0].assemblyCode){
+                Console.WriteLine("Seeing double at the decode branch stage");
+                return;
+            }
+        }
+        //Add it to the branch 
+        predictedBranches.Add(thisPrediction);
+    }
+    static command decode(string instruction){
+        command outputCommand = new command{};
+        //We don't want the fetch so we get rid of that straight away 
+        string currentInstruction = instruction;
+        string opCode = getNextPartFromText(currentInstruction);
+        string destination = "";
+
+        /*DECODE TENDS TO FAIL WHEN PROGRAMS ARE WRITTEN POORLY SO BEFORE 
+        CHANGING THIS CODE MAKE SURE ALL COMMANDS ARE CORRECTLY FORMATTED */
+
+        //We dont want to keep decoding if we see NOP
+        if (opCode != "NOP")
+        {
+            currentInstruction = currentInstruction.Remove(0, opCode.Length + 1);
+            destination = getNextPartFromText(currentInstruction);
+            currentInstruction = currentInstruction.Remove(0, destination.Length + 1);
+            string r2;
+            if (opCode == "JUMP")
+            {
+                outputCommand.valueString1 = destination;
+            }
+            //Decode Happens here
+            else
+            {
+                r2 = getNextPartFromText(currentInstruction);
+                outputCommand.valueString1 = r2;
+                if (currentInstruction.Length > r2.Length + 1)
+                {
+                    currentInstruction = currentInstruction.Remove(0, r2.Length + 1);
+                    string r3 = currentInstruction;
+                    outputCommand.valueString2 = r3;
+                }
+            }
+        }
+        //Give opCode and destination
+        outputCommand.opCode = opCode;
+        if (opCode == "STR") {
+            outputCommand.valueString1 = destination;
+            outputCommand.destination = "";
+        }
+        else outputCommand.destination = destination;
+
+        return outputCommand;
     }
     #region Debugging
     static private void DebugLog(string debugPrint)
