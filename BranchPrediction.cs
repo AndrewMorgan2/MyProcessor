@@ -86,15 +86,13 @@ static class BranchPrediction
             }
             else branchCommand.result = 1;
         }
-        //ReOrderBuffer.addCommand(branchCommand);
+        ReOrderBuffer.addCommand(branchCommand);
         ReOrderBuffer.SendPrediction(branchCommand);
-        /*
         //Get pipe to fetch these commands when they are'ny busy with none speculative commands
         if (branchCommand.result == 1)
         {
             Pipe.LoadSpeculativeCommands(Int32.Parse(branchCommand.destination));
         } else Pipe.LoadSpeculativeCommands(branchCommand.PC);
-        */
     }
     public static void PredictionResult(bool taken)
     {
