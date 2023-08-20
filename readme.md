@@ -1,8 +1,7 @@
 # Processor
 The processor I am simulating has a very limited instruction set.
-## Compile
-To compile "mcs -out:MyProcessor.exe Processor.cs Pipe.cs ReOrderBuffer.cs ExcutionUnit.cs Memory.cs BranchPrediction"
-To run "mono MyProcessor.exe"
+## Compile & Run
+To compile have version 6 or highier of .NET and run "dotnet build" within the directory, followed by "dotnet run".
 ## How to use 
 The processor uses a long list of booleans to decide how it runs and what it prints out. There are debug booleans which allow classes (eg excution units) to print there outputs. If you want to run your own program (using the instruction set below) change the "RunTests" boolean to false, and write your program in assemblyCode.txt . 
 ## Instructions
