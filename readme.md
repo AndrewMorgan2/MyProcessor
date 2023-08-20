@@ -1,5 +1,6 @@
 # Processor
 The processor I am simulating has a very limited instruction set.
+![alt text](https://github.com/AndrewMorgan2/MyProcessor/blob/main/diagram.png)
 ## Compile & Run
 To compile have version 6 or highier of .NET and run "dotnet build" within the directory, followed by "dotnet run".
 ## How to use 
